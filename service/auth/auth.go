@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/chzyer/reflag"
 	"github.com/jj-io/jj/handlers/auth"
 	"github.com/jj-io/jj/model"
 	"github.com/jj-io/jj/service"
+
+	"github.com/chzyer/reflag"
 	"gopkg.in/logex.v1"
 )
 

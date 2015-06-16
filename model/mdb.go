@@ -4,7 +4,6 @@ import (
 	"net/url"
 	"time"
 
-	"gopkg.in/logex.v1"
 	"gopkg.in/mgo.v2"
 )
 
@@ -19,7 +18,6 @@ func NewMdb(dbname string, mdb *mgo.Session) *Mdb {
 
 func DialUrl(url_ string) (string, *mgo.Session, error) {
 	u, _ := url.Parse("tcp://" + url_)
-	logex.Struct(url_, *u)
 
 	session, err := mgo.DialWithTimeout(u.Host, time.Second)
 	if err != nil {

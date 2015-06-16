@@ -9,6 +9,7 @@ import (
 
 	"github.com/jj-io/jj/service"
 	"github.com/jj-io/jj/service/auth"
+
 	"gopkg.in/logex.v1"
 )
 
@@ -46,6 +47,7 @@ func main() {
 		usage()
 	}
 
+	hasServices := false
 	optIdx := -1
 	for i, srvName := range os.Args[1:] {
 		if srvName[0] == '-' {
@@ -55,9 +57,14 @@ func main() {
 		for _, s := range srvs {
 			if s.Name == srvName {
 				s.Use = true
+				hasServices = true
 				break
 			}
 		}
+	}
+	if !hasServices {
+		println("not services specified!")
+		usage()
 	}
 
 	if optIdx > 0 {

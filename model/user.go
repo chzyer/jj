@@ -43,15 +43,15 @@ func NewUserModel(mdb *Mdb) *UserModel {
 
 func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
 	if !RegexpUserEmail.MatchString(email) {
-		return "", ErrUserEmailInvalid.Format(email)
+		return "", ErrUserEmailInvalid.Format(email).SetCode(400)
 	}
 	if secret == "" {
-		return "", logex.Trace(ErrUserPswdEmpty)
+		return "", logex.TraceError(ErrUserPswdEmpty).SetCode(400)
 	}
 	if taken, err := um.Find(email); err != nil {
 		return "", logex.Trace(err)
 	} else if taken {
-		return "", ErrUserEmailAlreadyTaken.Format(email)
+		return "", ErrUserEmailAlreadyTaken.Format(email).SetCode(400)
 	}
 	u := &User{
 		Id:     bson.NewObjectId(),
@@ -69,7 +69,7 @@ func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
 
 func (um *UserModel) Find(email string) (bool, error) {
 	if !RegexpUserEmail.MatchString(email) {
-		return false, ErrUserEmailInvalid.Format(email)
+		return false, ErrUserEmailInvalid.Format(email).SetCode(400)
 	}
 
 	has, err := um.Has(M{"email": email})
@@ -79,12 +79,12 @@ func (um *UserModel) Find(email string) (bool, error) {
 	return has, err
 }
 
-func (um *UserModel) Login(email, secret string) (token string, err error) {
+func (um *UserModel) Login(email, secret string) (uid, token string, err error) {
 	if !RegexpUserEmail.MatchString(email) {
-		return "", ErrUserEmailInvalid.Format(email)
+		return "", "", ErrUserEmailInvalid.Format(email).SetCode(400)
 	}
 	if secret == "" {
-		return "", logex.Trace(ErrUserPswdEmpty)
+		return "", "", ErrUserPswdEmpty.SetCode(400)
 	}
 
 	var u *User
@@ -92,10 +92,10 @@ func (um *UserModel) Login(email, secret string) (token string, err error) {
 		"email":  email,
 		"secret": secret,
 	}, &u); err != nil {
-		return "", logex.Trace(err)
+		return "", "", logex.Trace(err)
 	}
 	if u == nil {
-		return "", logex.Trace(ErrUserLoginFail)
+		return "", "", ErrUserLoginFail.SetCode(401)
 	}
-	return u.Token, nil
+	return u.Id.Hex(), u.Token, nil
 }
