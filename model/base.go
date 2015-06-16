@@ -2,6 +2,7 @@ package model
 
 import (
 	"reflect"
+	"sync"
 
 	"gopkg.in/logex.v1"
 	"gopkg.in/mgo.v2"
@@ -9,13 +10,23 @@ import (
 )
 
 var Models *models
+var once sync.Once
 
 var (
 	ErrProfileEmpty = logex.Define("profile is empty")
 )
 
-func Init(mdb *mgo.Session) {
-	Models = newModels(mdb)
+func Init(url_ string) (err error) {
+	once.Do(func() {
+		var dbName string
+		var mdb *mgo.Session
+		dbName, mdb, err = DialUrl(url_)
+		if err != nil {
+			return
+		}
+		Models = newModels(dbName, mdb)
+	})
+	return logex.Trace(err)
 }
 
 func IsPanicError(err error) bool {
@@ -29,51 +40,79 @@ type models struct {
 	User *UserModel
 }
 
-func newModels(mdb *mgo.Session) *models {
-	return &models{}
+func newModels(dbName string, session *mgo.Session) *models {
+	return &models{
+		User: NewUserModel(NewMdb(dbName, session)),
+	}
 }
 
 type M bson.M
 
-type models struct {
-	User *UserModel
+type Indexer interface {
+	Index() []mgo.Index
 }
 
 type BaseModel struct {
 	ins  reflect.Type
 	Name string
-	mdb  *mgo.Session
+	mdb  *Mdb
 }
 
-func NewBaseModel(mdb *mgo.Session, ins interface{}) *BaseModel {
+func NewBaseModel(mdb *Mdb, ins interface{}) *BaseModel {
 	t := reflect.TypeOf(ins)
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
 	}
-	return &BaseModel{
+	b := &BaseModel{
 		ins:  t,
 		Name: t.Name(),
 		mdb:  mdb,
 	}
+	b.ensureIndex(ins)
+	return b
 }
 
-func (b *BaseModel) One(query, result interface{}) error {
-	session := b.mdb.Copy()
-	session.Close()
-	return session.One(b.Name, query, result)
+func (b *BaseModel) ensureIndex(obj interface{}) (err error) {
+	if i, ok := obj.(Indexer); ok {
+		for _, index := range i.Index() {
+			err = b.mdb.collection(b.Name).EnsureIndex(index)
+			if err != nil {
+				return logex.Trace(err)
+			}
+		}
+	}
+	return nil
 }
 
-func (b *BaseModel) All(query, result interface{}) error {
+func (b *BaseModel) One(query M, result interface{}) error {
+	err := b.mdb.One(b.Name, query, result)
+	if err == mgo.ErrNotFound {
+		err = nil
+	}
+	return err
+}
+
+func (b *BaseModel) All(query M, result interface{}) error {
 	return b.mdb.All(b.Name, query, result)
 }
 
-func (b *BaseModel) Distinct(key string, query, result interface{}) error {
-	return b.mdb.WithC(b.Name, func(c *mgo.Collection) error {
-		return c.Find(query).Distinct(key, result)
-	})
+func (b *BaseModel) Distinct(key string, query M, result interface{}) error {
+	return b.mdb.Distinct(b.Name, key, query, result)
 }
 
-func (b *BaseModel) Count(query interface{}) (n int) {
+func (b *BaseModel) Has(query M) (bool, error) {
+	var o interface{}
+	err := b.mdb.One(b.Name, query, &o)
+	if err != nil {
+		if err == mgo.ErrNotFound {
+			err = nil
+		}
+		return false, err
+	}
+	return o != nil, nil
+}
+
+func (b *BaseModel) Count(query M) (n int, err error) {
 	return b.mdb.Count(b.Name, query)
 }
 
@@ -81,14 +120,14 @@ func (b *BaseModel) Insert(data ...interface{}) error {
 	return b.mdb.Insert(b.Name, data...)
 }
 
-func (b *BaseModel) Update(selector, change interface{}) error {
+func (b *BaseModel) Update(selector, change M) error {
 	return b.mdb.Update(b.Name, selector, change)
 }
 
-func (b *BaseModel) Upsert(selector, change interface{}) error {
+func (b *BaseModel) Upsert(selector, change M) error {
 	return b.mdb.Upsert(b.Name, selector, change)
 }
 
-func (b *BaseModel) Remove(selector interface{}) error {
+func (b *BaseModel) Remove(selector M) error {
 	return b.mdb.Remove(b.Name, selector)
 }

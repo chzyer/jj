@@ -1,8 +1,22 @@
 package model
 
 import (
+	"regexp"
+
+	"github.com/jj-io/jj/internal"
+
+	"gopkg.in/logex.v1"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
+)
+
+var (
+	RegexpUserEmail     = regexp.MustCompile(`\w+@(\w+\.)+\w+`)
+	ErrUserEmailInvalid = logex.Define("email '%v' is invalid")
+	ErrUserPswdEmpty    = logex.Define("password is empty")
+	ErrUserLoginFail    = logex.Define("incorrect username or password")
+
+	ErrUserEmailAlreadyTaken = logex.Define("email '%v' is already taken")
 )
 
 type User struct {
@@ -10,20 +24,78 @@ type User struct {
 	Email  string        `bson:"email"`
 	Secret string        `bson:"secret"`
 	Token  string        `bson:"token"`
+	Valid  bool          `bson:"valid"`
+}
+
+func (u User) Index() []mgo.Index {
+	return []mgo.Index{
+		{Key: []string{"Email"}, Unique: true},
+	}
 }
 
 type UserModel struct {
 	*BaseModel
 }
 
-func NewUserModel(mdb *mgo.Session) *UserModel {
+func NewUserModel(mdb *Mdb) *UserModel {
 	return &UserModel{NewBaseModel(mdb, User{})}
 }
 
-func (u *UserModel) Register(email, secret string) error {
-	return nil
+func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
+	if !RegexpUserEmail.MatchString(email) {
+		return "", ErrUserEmailInvalid.Format(email)
+	}
+	if secret == "" {
+		return "", logex.Trace(ErrUserPswdEmpty)
+	}
+	if taken, err := um.Find(email); err != nil {
+		return "", logex.Trace(err)
+	} else if taken {
+		return "", ErrUserEmailAlreadyTaken.Format(email)
+	}
+	u := &User{
+		Id:     bson.NewObjectId(),
+		Email:  email,
+		Secret: secret,
+		Token:  internal.GenUuid([]byte(secret)),
+		Valid:  true,
+	}
+
+	if err := logex.Trace(um.Insert(u)); err != nil {
+		return "", err
+	}
+	return u.Id, nil
 }
 
-func (u *UserModel) Login(email, secret string) (token string, err error) {
-	return "", nil
+func (um *UserModel) Find(email string) (bool, error) {
+	if !RegexpUserEmail.MatchString(email) {
+		return false, ErrUserEmailInvalid.Format(email)
+	}
+
+	has, err := um.Has(M{"email": email})
+	if err != nil {
+		err = logex.Trace(err)
+	}
+	return has, err
+}
+
+func (um *UserModel) Login(email, secret string) (token string, err error) {
+	if !RegexpUserEmail.MatchString(email) {
+		return "", ErrUserEmailInvalid.Format(email)
+	}
+	if secret == "" {
+		return "", logex.Trace(ErrUserPswdEmpty)
+	}
+
+	var u *User
+	if err := um.One(M{
+		"email":  email,
+		"secret": secret,
+	}, &u); err != nil {
+		return "", logex.Trace(err)
+	}
+	if u == nil {
+		return "", logex.Trace(ErrUserLoginFail)
+	}
+	return u.Token, nil
 }
