@@ -62,9 +62,12 @@ func main() {
 			}
 		}
 	}
+
+	// open all services if none service is specified
 	if !hasServices {
-		println("not services specified!")
-		usage()
+		for _, s := range srvs {
+			s.Use = true
+		}
 	}
 
 	if optIdx > 0 {
@@ -84,7 +87,7 @@ func main() {
 
 	for _, s := range srvs {
 		if s.Use {
-			s.Ins = s.New(os.Args[0]+" "+os.Args[1], s.Args)
+			s.Ins = s.New(os.Args[0]+" "+s.Name, s.Args)
 			if i, ok := s.Ins.(service.ServiceIniter); ok {
 				if err := i.Init(); err != nil {
 					logex.Error(err)

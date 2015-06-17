@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"time"
 
+	"gopkg.in/logex.v1"
 	"gopkg.in/mgo.v2"
 )
 
@@ -21,7 +22,7 @@ func DialUrl(url_ string) (string, *mgo.Session, error) {
 
 	session, err := mgo.DialWithTimeout(u.Host, time.Second)
 	if err != nil {
-		return "", nil, err
+		return "", nil, logex.Trace(err)
 	}
 	return u.Path[1:], session, nil
 }
