@@ -54,12 +54,18 @@ func main() {
 			optIdx = i + 1
 			break
 		}
+		found := false
 		for _, s := range srvs {
 			if s.Name == srvName {
 				s.Use = true
 				hasServices = true
+				found = true
 				break
 			}
+		}
+		if !found {
+			println(fmt.Sprintf("unknown services '%v'", srvName))
+			usage()
 		}
 	}
 
@@ -80,6 +86,7 @@ func main() {
 						os.Exit(1)
 					}
 					s.Args = append(s.Args, "-"+opt[len(prefix):])
+					break
 				}
 			}
 		}
