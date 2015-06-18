@@ -75,8 +75,9 @@ func Register(w http.ResponseWriter, req *http.Request) {
 }
 
 type LoginResp struct {
-	Token string `json:"token"`
-	Uid   string `json:"uid"`
+	Result int    `json:"result"`
+	Token  string `json:"token"`
+	Uid    string `json:"uid"`
 	*InitResp
 }
 
@@ -99,8 +100,9 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	response(w, &LoginResp{
-		Uid:   uid,
-		Token: token,
+		Result: 200,
+		Uid:    uid,
+		Token:  token,
 	})
 }
 
