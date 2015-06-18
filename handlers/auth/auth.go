@@ -107,8 +107,6 @@ func Login(w http.ResponseWriter, req *http.Request) {
 }
 
 func Init(w http.ResponseWriter, req *http.Request) {
-	// uid := req.FormValue("uid")
-	// token := req.FormValue("token")
 	// verify
 
 }
