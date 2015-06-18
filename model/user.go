@@ -29,7 +29,7 @@ type User struct {
 
 func (u User) Index() []mgo.Index {
 	return []mgo.Index{
-		{Key: []string{"Email"}, Unique: true},
+		{Key: []string{"email"}, Unique: true},
 	}
 }
 

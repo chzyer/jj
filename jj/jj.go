@@ -9,8 +9,16 @@ import (
 
 	"github.com/jj-io/jj/service"
 	"github.com/jj-io/jj/service/auth"
+	"github.com/jj-io/jj/service/op"
 
 	"gopkg.in/logex.v1"
+)
+
+var (
+	srvs = []*service.ServiceType{
+		{Name: auth.Name, New: auth.NewAuthService},
+		{Name: op.Name, New: op.NewOpService},
+	}
 )
 
 func usage() {
@@ -27,12 +35,6 @@ example:
 `, os.Args[0], strings.Join(serviceNames(), "\n\t")))
 	os.Exit(1)
 }
-
-var (
-	srvs = []*service.ServiceType{
-		{Name: auth.Name, New: auth.NewAuthService},
-	}
-)
 
 func serviceNames() []string {
 	s := make([]string, len(srvs))
