@@ -8,21 +8,35 @@ import (
 )
 
 type Protocol interface {
+	io.Reader
+	io.Writer
+	ReadWithEncoding(encoding Encoding, buffer []byte, v interface{}) error
+	WriteWithEncoding(encoding Encoding, v interface{}) error
 }
+
+type NewProtocolFunc func(r io.Reader, w io.Writer) Protocol
 
 type ProtocolV1 struct {
-	encoding Encoding
-	r        *io.LimitedReader
-	w        io.Writer
+	r *io.LimitedReader
+	w io.Writer
 }
 
-func NewProtocolV1(encoding Encoding, r io.Reader, w io.Writer) *ProtocolV1 {
+func NewProtocolV1(r io.Reader, w io.Writer) Protocol {
 	return &ProtocolV1{
 		r: &io.LimitedReader{r, 0},
 		w: w,
-
-		encoding: encoding,
 	}
+}
+
+func (p1 *ProtocolV1) ReadWithEncoding(encoding Encoding, buffer []byte, v interface{}) error {
+	n, err := p1.Read(buffer)
+	if err != nil {
+		return logex.Trace(err)
+	}
+	if err := encoding.Decode(buffer[:n], v); err != nil {
+		return logex.Trace(err)
+	}
+	return nil
 }
 
 func (p1 *ProtocolV1) Read(buffer []byte) (n int, err error) {
@@ -37,6 +51,17 @@ func (p1 *ProtocolV1) Read(buffer []byte) (n int, err error) {
 	return n, logex.Trace(err)
 }
 
+func (p1 *ProtocolV1) WriteWithEncoding(encoding Encoding, v interface{}) error {
+	buf, err := encoding.Encode(v)
+	if err != nil {
+		return logex.Trace(err)
+	}
+	if _, err := p1.Write(buf); err != nil {
+		return logex.Trace(err)
+	}
+	return nil
+}
+
 func (p1 *ProtocolV1) Write(buffer []byte) (n int, err error) {
 	lengthByte := make([]byte, 4)
 	binary.BigEndian.PutUint32(lengthByte, uint32(len(buffer)))
@@ -49,6 +74,9 @@ func (p1 *ProtocolV1) Write(buffer []byte) (n int, err error) {
 	}
 
 	n, err = p1.w.Write(buffer)
+	if err == nil && n != len(buffer) {
+		err = logex.Trace(io.ErrShortWrite)
+	}
 	if err != nil {
 		return n, logex.Trace(err)
 	}

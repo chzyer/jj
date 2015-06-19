@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"crypto/aes"
 	"crypto/cipher"
 
 	"gopkg.in/logex.v1"
@@ -28,6 +29,17 @@ type AesMsgPackEncoding struct {
 	decode cipher.Stream
 }
 
+func NewAesMsgPackEncoding(key []byte) (*AesMsgPackEncoding, error) {
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, logex.Trace(err)
+	}
+	return &AesMsgPackEncoding{
+		encode: cipher.NewCFBEncrypter(block, make([]byte, block.BlockSize())),
+		decode: cipher.NewCFBDecrypter(block, make([]byte, block.BlockSize())),
+	}, nil
+}
+
 func (mp *AesMsgPackEncoding) Decode(b []byte, v interface{}) error {
 	bin := make([]byte, len(b))
 	copy(bin, b)
@@ -35,7 +47,7 @@ func (mp *AesMsgPackEncoding) Decode(b []byte, v interface{}) error {
 	return mp.msgp.Decode(bin, v)
 }
 
-func (mp AesMsgPackEncoding) Encode(v interface{}) ([]byte, error) {
+func (mp *AesMsgPackEncoding) Encode(v interface{}) ([]byte, error) {
 	b, err := mp.msgp.Encode(v)
 	if err != nil {
 		return nil, logex.Trace(err)
