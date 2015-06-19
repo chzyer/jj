@@ -9,7 +9,7 @@ import (
 
 	"github.com/jj-io/jj/service"
 	"github.com/jj-io/jj/service/auth"
-	"github.com/jj-io/jj/service/op"
+	"github.com/jj-io/jj/service/mgr"
 
 	"gopkg.in/logex.v1"
 )
@@ -17,7 +17,7 @@ import (
 var (
 	srvs = []*service.ServiceType{
 		{Name: auth.Name, New: auth.NewAuthService},
-		{Name: op.Name, New: op.NewOpService},
+		{Name: mgr.Name, New: mgr.NewMgrService},
 	}
 )
 

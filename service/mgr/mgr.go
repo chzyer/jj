@@ -1,4 +1,4 @@
-package op
+package mgr
 
 import (
 	"time"
@@ -9,7 +9,7 @@ import (
 	"gopkg.in/logex.v1"
 )
 
-var Name = "op"
+var Name = "mgr"
 
 type Config struct {
 	Listen       string        `flag:"def=:8682;usage=listen port"`
@@ -17,24 +17,24 @@ type Config struct {
 	WriteTimeout time.Duration `flag:"def=1m;usage=write timeout"`
 }
 
-type OpService struct {
+type MgrService struct {
 	*Config
 }
 
-func NewOpService(name string, args []string) service.Service {
+func NewMgrService(name string, args []string) service.Service {
 	var c Config
 	reflag.ParseFlag(&c, &reflag.FlagConfig{
 		Name: name,
 		Args: args,
 	})
-	return &OpService{
+	return &MgrService{
 		Config: &c,
 	}
 }
 
-func (a *OpService) Name() string { return Name }
+func (a *MgrService) Name() string { return Name }
 
-func (a *OpService) Run() error {
-	logex.Infof("[op] listen on %v", a.Listen)
+func (a *MgrService) Run() error {
+	logex.Infof("[mgr] listen on %v", a.Listen)
 	return nil
 }

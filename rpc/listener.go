@@ -9,10 +9,11 @@ import (
 type Handler interface {
 	Init(net.Conn)
 	Handle()
+	Protocol() string
 }
 
 func Listen(addr string, handler Handler) error {
-	listener, err := net.Listen("tcp", addr)
+	listener, err := net.Listen(handler.Protocol(), addr)
 	if err != nil {
 		return logex.Trace(err)
 	}
