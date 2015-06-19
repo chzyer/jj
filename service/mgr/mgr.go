@@ -3,6 +3,7 @@ package mgr
 import (
 	"time"
 
+	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/service"
 
 	"github.com/chzyer/reflag"
@@ -36,5 +37,6 @@ func (a *MgrService) Name() string { return Name }
 
 func (a *MgrService) Run() error {
 	logex.Infof("[mgr] listen on %v", a.Listen)
-	return nil
+	mux := rpc.NewServeMux()
+	return rpc.Listen(a.Listen, rpc.NewTcpHandler(rpc.NewProtocolV1, mux))
 }

@@ -42,9 +42,13 @@ func (p1 *ProtocolV1) ReadWithEncoding(encoding Encoding, buffer []byte, v inter
 func (p1 *ProtocolV1) Read(buffer []byte) (n int, err error) {
 	p1.r.N += 4
 	n, err = p1.r.Read(buffer)
+	if n != 4 && err == nil {
+		err = logex.Trace(io.EOF)
+	}
 	if err != nil {
 		return n, logex.Trace(err)
 	}
+
 	length := int64(binary.BigEndian.Uint32(buffer[:n]))
 	p1.r.N += length
 	n, err = p1.r.Read(buffer)

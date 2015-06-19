@@ -18,6 +18,7 @@ type TcpHandler struct {
 func NewTcpHandler(protGen NewProtocolFunc, mux *ServeMux) *TcpHandler {
 	th := &TcpHandler{
 		mux:       mux,
+		protGen:   protGen,
 		writeChan: make(chan *WriteOp, 10),
 		closeChan: make(chan struct{}, 1),
 	}
@@ -79,6 +80,7 @@ func (th *TcpHandler) HandleRead() {
 	for {
 		err = th.mux.Read(prot, buffer)
 		if err != nil {
+			logex.Error(err)
 			break
 		}
 	}
