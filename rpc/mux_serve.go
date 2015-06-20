@@ -2,6 +2,7 @@ package rpc
 
 import (
 	"sync"
+	"time"
 
 	"gopkg.in/logex.v1"
 )
@@ -78,13 +79,22 @@ func (s *ServeMux) handleLoop() {
 			return
 		}
 
-		switch op.Path {
-		case "ping":
-			s.Write(&Operation{
-				Path: op.Path,
-				Seq:  op.Seq,
-				Data: "pong",
-			})
-		}
+		go func(op *Operation) {
+			switch op.Path {
+			case "ping":
+				s.Write(&Operation{
+					Path: op.Path,
+					Seq:  op.Seq,
+					Data: "pong",
+				})
+			case "sleep":
+				time.Sleep(100 * time.Microsecond)
+				s.Write(&Operation{
+					Path: op.Path,
+					Seq:  op.Seq,
+					Data: "1second",
+				})
+			}
+		}(op)
 	}
 }

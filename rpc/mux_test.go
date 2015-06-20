@@ -18,20 +18,45 @@ func TestMux(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	done := make(chan struct{}, 1)
+	go func() {
+		_, err := clientMux.Write(&WriteOp{
+			Encoding: MsgPackEncoding{},
+			Data: &Operation{
+				Version: 1,
+				Seq:     1,
+				Path:    "sleep",
+			},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		done <- struct{}{}
+	}()
 	resp, err := clientMux.Write(&WriteOp{
 		Encoding: MsgPackEncoding{},
 		Data: &Operation{
 			Version: 1,
-			Seq:     1,
+			Seq:     2,
 			Path:    "ping",
 		},
 	})
+	if len(done) > 0 {
+		t.Fatal("sleep not working")
+	}
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if resp.Seq == 1 && resp.Path == "ping" && resp.Data.(string) == "pong" {
+
+	if resp.Seq == 2 && resp.Path == "ping" && resp.Data.(string) == "pong" {
 	} else {
 		t.Fatal(resp)
+	}
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Fatal("timeout")
 	}
 }
