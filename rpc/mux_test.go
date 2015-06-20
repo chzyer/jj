@@ -49,7 +49,7 @@ func TestMux(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if resp.Seq == 2 && resp.Path == "ping" && resp.Data.(string) == "pong" {
+	if resp.Seq == 2 && resp.Data.(string) == "pong" {
 	} else {
 		t.Fatal(resp)
 	}

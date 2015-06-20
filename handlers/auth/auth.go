@@ -80,13 +80,14 @@ func Register(w http.ResponseWriter, req *http.Request) {
 }
 
 type LoginResp struct {
-	Result int    `json:"result"`
-	Token  string `json:"token"`
-	Uid    string `json:"uid"`
-	*InitResp
+	Result  int      `json:"result"`
+	Token   string   `json:"token"`
+	Uid     string   `json:"uid"`
+	MgrAddr []string `json:"mgraddr"`
 }
 
 type InitResp struct {
+	Result  int      `json:"result"`
 	MgrAddr []string `json:"mgraddr"`
 }
 
@@ -104,10 +105,10 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	response(w, &LoginResp{
-		Result:   200,
-		Uid:      uid,
-		Token:    token,
-		InitResp: NewInitResp(req),
+		Result:  200,
+		Uid:     uid,
+		Token:   token,
+		MgrAddr: NewMgrHost(req),
 	})
 }
 
@@ -130,16 +131,17 @@ func Init(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	response(w, NewInitResp(req))
+	response(w, &InitResp{
+		Result:  200,
+		MgrAddr: NewMgrHost(req),
+	})
 }
 
-func NewInitResp(req *http.Request) *InitResp {
+func NewMgrHost(req *http.Request) []string {
 	host := req.Host
 	if idx := strings.LastIndex(host, ":"); idx > 0 {
 		host = host[:idx]
 	}
 
-	return &InitResp{
-		MgrAddr: []string{host + ":8682"},
-	}
+	return []string{host + ":8682"}
 }
