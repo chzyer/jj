@@ -67,6 +67,21 @@ func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
 	return u.Id, nil
 }
 
+func (um *UserModel) CheckToken(uid, token string) (bool, error) {
+	id, err := BsonObjectId(uid)
+	if err != nil {
+		return false, logex.Trace(err)
+	}
+	has, err := um.Has(M{
+		"_id":   id,
+		"token": token,
+	})
+	if err != nil {
+		return false, logex.Trace(err)
+	}
+	return has, nil
+}
+
 func (um *UserModel) Find(email string) (bool, error) {
 	if !RegexpUserEmail.MatchString(email) {
 		return false, ErrUserEmailInvalid.Format(email).SetCode(400)

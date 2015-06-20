@@ -67,6 +67,11 @@ func (s *ServeMux) Read(prot Protocol, buf []byte) error {
 	return nil
 }
 
+func (s *ServeMux) Close() {
+	close(s.stopChan)
+	s.workGroup.Wait()
+}
+
 func (s *ServeMux) handleLoop() {
 	s.workGroup.Add(1)
 	defer s.workGroup.Done()

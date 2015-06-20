@@ -13,7 +13,8 @@ var Models *models
 var once sync.Once
 
 var (
-	ErrProfileEmpty = logex.Define("profile is empty")
+	ErrProfileEmpty  = logex.Define("profile is empty")
+	ErrInvalidObject = logex.Define("Invalid input to ObjectIdHex")
 )
 
 func Init(url_ string) (err error) {
@@ -47,6 +48,13 @@ func newModels(dbName string, session *mgo.Session) *models {
 }
 
 type M bson.M
+
+func BsonObjectId(id string) (bson.ObjectId, error) {
+	if !bson.IsObjectIdHex(id) {
+		return "", ErrInvalidObject.Trace()
+	}
+	return bson.ObjectIdHex(id), nil
+}
 
 type Indexer interface {
 	Index() []mgo.Index

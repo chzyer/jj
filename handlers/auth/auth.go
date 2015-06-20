@@ -5,10 +5,15 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/jj-io/jj/model"
 
 	"gopkg.in/logex.v1"
+)
+
+var (
+	ErrInvalidToken = logex.Define("invalid token")
 )
 
 func InitHandler(mux *http.ServeMux) {
@@ -82,8 +87,7 @@ type LoginResp struct {
 }
 
 type InitResp struct {
-	NotifyServerAddr []string `json:"notify_server_addr"`
-	OpServerAddr     []string `json:"op_server_addr"`
+	MgrAddr []string `json:"mgraddr"`
 }
 
 func Login(w http.ResponseWriter, req *http.Request) {
@@ -100,13 +104,42 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	response(w, &LoginResp{
-		Result: 200,
-		Uid:    uid,
-		Token:  token,
+		Result:   200,
+		Uid:      uid,
+		Token:    token,
+		InitResp: NewInitResp(req),
 	})
 }
 
 func Init(w http.ResponseWriter, req *http.Request) {
-	// verify
+	if req.Method != "POST" {
+		http.Error(w, "Method not allowed", 405)
+		return
+	}
 
+	uid := req.FormValue("uid")
+	token := req.FormValue("token")
+
+	ok, err := model.Models.User.CheckToken(uid, token)
+	if err != nil {
+		response(w, err)
+		return
+	}
+	if !ok {
+		response(w, ErrInvalidToken)
+		return
+	}
+
+	response(w, NewInitResp(req))
+}
+
+func NewInitResp(req *http.Request) *InitResp {
+	host := req.Host
+	if idx := strings.LastIndex(host, ":"); idx > 0 {
+		host = host[:idx]
+	}
+
+	return &InitResp{
+		MgrAddr: []string{host + ":8682"},
+	}
 }
