@@ -12,6 +12,10 @@ var (
 	randNum = rand.New(rand.NewSource(time.Now().Unix()))
 )
 
+func Rand() *rand.Rand {
+	return randNum
+}
+
 func GenUuid(secret []byte) string {
 	h := md5.New()
 	h.Write(salt)
