@@ -13,6 +13,11 @@ const (
 	stateStart
 )
 
+type Mux interface {
+	Read(Protocol, []byte) error
+	SetWriteChan(ch chan<- *WriteOp)
+}
+
 // single-conn request multiplexer
 type ServeMux struct {
 	encoding    Encoding
@@ -25,29 +30,27 @@ type ServeMux struct {
 }
 
 func NewServeMux() *ServeMux {
-	return &ServeMux{
+	sm := &ServeMux{
 		encoding: MsgPackEncoding{},
 		stopChan: make(chan struct{}),
 		workChan: make(chan *Operation, 10),
 	}
+	go sm.handleLoop()
+	return sm
 }
 
 type Operation struct {
 	Version int
 	Seq     int
 	Path    string
-}
-
-type Response struct {
-	Seq  int
-	Data interface{}
+	Data    interface{}
 }
 
 func (s *ServeMux) SetWriteChan(ch chan<- *WriteOp) {
 	s.writeChan = ch
 }
 
-func (s *ServeMux) Write(data interface{}) {
+func (s *ServeMux) Write(data *Operation) {
 	s.writeChan <- &WriteOp{
 		Encoding: s.encoding,
 		Data:     data,
@@ -77,7 +80,8 @@ func (s *ServeMux) handleLoop() {
 
 		switch op.Path {
 		case "ping":
-			s.Write(&Response{
+			s.Write(&Operation{
+				Path: op.Path,
 				Seq:  op.Seq,
 				Data: "pong",
 			})

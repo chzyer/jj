@@ -9,13 +9,13 @@ import (
 
 type TcpHandler struct {
 	protGen   NewProtocolFunc
-	mux       *ServeMux
+	mux       Mux
 	conn      *net.TCPConn
 	writeChan chan *WriteOp
 	closeChan chan struct{}
 }
 
-func NewTcpHandler(protGen NewProtocolFunc, mux *ServeMux) *TcpHandler {
+func NewTcpHandler(protGen NewProtocolFunc, mux Mux) *TcpHandler {
 	th := &TcpHandler{
 		mux:       mux,
 		protGen:   protGen,
@@ -34,10 +34,6 @@ func (th *TcpHandler) Protocol() string {
 	return "tcp"
 }
 
-type Hello struct {
-	Uid string `msg:"uid"`
-}
-
 func (th *TcpHandler) Handle() {
 	go th.HandleRead()
 	go th.HandleWrite()
@@ -45,7 +41,9 @@ func (th *TcpHandler) Handle() {
 
 type WriteOp struct {
 	Encoding Encoding
-	Data     interface{}
+	Data     *Operation
+	resp     chan *Operation
+	err      chan error
 }
 
 func (th *TcpHandler) HandleWrite() {
