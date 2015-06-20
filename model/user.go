@@ -57,7 +57,7 @@ func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
 		Id:     bson.NewObjectId(),
 		Email:  email,
 		Secret: secret,
-		Token:  internal.GenUuid([]byte(secret)),
+		Token:  internal.GenUserToken(),
 		Valid:  true,
 	}
 

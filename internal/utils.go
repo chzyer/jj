@@ -15,6 +15,6 @@ func Rand() *rand.Rand {
 	return randNum
 }
 
-func GenUuid() string {
-	return string(uuid.NewV4()) + string(uuid.NewV4())
+func GenUserToken() string {
+	return uuid.NewV4().String()[:32]
 }
