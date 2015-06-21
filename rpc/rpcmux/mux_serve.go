@@ -103,7 +103,7 @@ func (s *ServeMux) handleLoop() {
 			logex.Warn("unknown path: ", op.Meta.Path)
 			continue
 		}
-		go handler(NewResponseWriter(s, op), nil)
+		go handler(NewResponseWriter(s, op), op.Data)
 	}
 }
 

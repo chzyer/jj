@@ -32,8 +32,11 @@ func TestMux(t *testing.T) {
 			Meta: &rpcprot.Meta{
 				Version: 1,
 				Seq:     1,
-				Path:    "sleep",
+				Path:    "debug.sleep",
 			},
+			Data: rpcprot.NewData(&SleepData{
+				Millisecond: 100,
+			}),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -44,7 +47,7 @@ func TestMux(t *testing.T) {
 		Meta: &rpcprot.Meta{
 			Version: 1,
 			Seq:     2,
-			Path:    "ping",
+			Path:    "debug.ping",
 		},
 	})
 	if len(done) > 0 {
