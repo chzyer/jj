@@ -51,7 +51,7 @@ func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *Packet) e
 	}
 
 	if err := metaEnc.Decode(buf, &p.Meta); err != nil {
-		return logex.Trace(err, string(buf))
+		return logex.Trace(err, buf.String())
 	}
 
 	p.Data = NewRawData(buf.Bytes())
