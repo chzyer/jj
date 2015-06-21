@@ -1,7 +1,7 @@
 package mgr
 
-import "github.com/jj-io/jj/rpc"
+import "github.com/jj-io/jj/rpc/rpcmux"
 
-func InitHandler(mux *rpc.ServeMux) {
+func InitHandler(mux *rpcmux.ServeMux) {
 
 }

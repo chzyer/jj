@@ -5,6 +5,9 @@ import (
 
 	"github.com/jj-io/jj/handlers/mgr"
 	"github.com/jj-io/jj/rpc"
+	"github.com/jj-io/jj/rpc/rpcapi"
+	"github.com/jj-io/jj/rpc/rpclink"
+	"github.com/jj-io/jj/rpc/rpcmux"
 	"github.com/jj-io/jj/service"
 
 	"github.com/chzyer/reflag"
@@ -38,7 +41,10 @@ func (a *MgrService) Name() string { return Name }
 
 func (a *MgrService) Run() error {
 	logex.Infof("[mgr] listen on %v", a.Listen)
-	mux := rpc.NewServeMux()
-	mgr.InitHandler(mux)
-	return rpc.Listen(a.Listen, rpc.NewTcpHandler(rpc.NewProtocolV1, mux))
+	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
+		mux := rpcmux.NewServeMux()
+		// fixme
+		mgr.InitHandler(mux)
+		return rpclink.NewTcpLink(mux)
+	})
 }
