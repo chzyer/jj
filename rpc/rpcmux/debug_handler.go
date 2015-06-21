@@ -8,8 +8,8 @@ import (
 )
 
 func InitDebugHandler(mux *ServeMux) {
-	mux.HandleFunc("ping", Ping)
-	mux.HandleFunc("sleep", Sleep)
+	mux.HandleFunc("debug.ping", Ping)
+	mux.HandleFunc("debug.sleep", Sleep)
 }
 
 func Ping(w rpc.ResponseWriter, data *rpcprot.Data) {
