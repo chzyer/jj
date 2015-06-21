@@ -10,35 +10,35 @@ import (
 	"gopkg.in/logex.v1"
 )
 
-type AesMsgPackEncoding struct {
-	msgp   *MsgPackEncoding
+type AesEncoding struct {
+	enc    rpc.Encoding
 	encode cipher.Stream
 	decode cipher.Stream
 }
 
 var commonIV = []byte("b1d15254f0f0417d")
 
-func NewAesMsgPackEncoding(key []byte) (*AesMsgPackEncoding, error) {
+func NewAesEncoding(enc rpc.Encoding, key []byte) (*AesEncoding, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, logex.Trace(err)
 	}
-	return &AesMsgPackEncoding{
+	return &AesEncoding{
 		encode: cipher.NewCFBEncrypter(block, commonIV),
 		decode: cipher.NewCFBDecrypter(block, commonIV),
 	}, nil
 }
 
-func (mp *AesMsgPackEncoding) Decode(r rpc.BufferReader, v interface{}) error {
+func (mp *AesEncoding) Decode(r rpc.BufferReader, v interface{}) error {
 	buf := bytes.NewBuffer(make([]byte, 0, r.Len()))
 	r.WriteTo(buf)
 	mp.encode.XORKeyStream(buf.Bytes(), buf.Bytes())
-	return mp.msgp.Decode(buf, v)
+	return mp.enc.Decode(buf, v)
 }
 
-func (mp *AesMsgPackEncoding) Encode(w rpc.BufferWriter, v interface{}) error {
+func (mp *AesEncoding) Encode(w rpc.BufferWriter, v interface{}) error {
 	buf := bytes.NewBuffer(make([]byte, 0, 512))
-	if err := mp.msgp.Encode(buf, v); err != nil {
+	if err := mp.enc.Encode(buf, v); err != nil {
 		return logex.Trace(err)
 	}
 	mp.decode.XORKeyStream(buf.Bytes(), buf.Bytes())

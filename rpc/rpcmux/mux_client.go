@@ -38,8 +38,8 @@ type ClientMux struct {
 
 func NewClientMux() *ClientMux {
 	cm := &ClientMux{
-		metaEnc:   rpcenc.NewMsgPackEncoding(),
-		bodyEnc:   rpcenc.NewMsgPackEncoding(),
+		metaEnc:   rpcenc.NewJSONEncoding(),
+		bodyEnc:   rpcenc.NewJSONEncoding(),
 		respChan:  make(chan *rpcprot.Packet, 10),
 		writeChan: make(chan *rpclink.WriteItem, 10),
 	}

@@ -3,6 +3,9 @@ package rpcenc
 import (
 	"bytes"
 	"testing"
+
+	"gopkg.in/logex.v1"
+	"gopkg.in/vmihailenco/msgpack.v2"
 )
 
 type MsgpackTest struct {
@@ -10,6 +13,25 @@ type MsgpackTest struct {
 	Seq     int    `msgpack:"seq,omitempty"`
 	Path    string `msgpack:"path,omitempty"`
 	Error   string `msgpack:"error,omitempty"`
+}
+
+type Meta struct {
+	Version int    `msgpack:"version,omitempty"`
+	Seq     int    `msgpack:"seq,omitempty"`
+	Path    string `msgpack:"path,omitempty"`
+	Error   string `msgpack:"error,omitempty"`
+}
+
+func TestMeta(t *testing.T) {
+	data := []byte{
+		147, 170, 100, 101, 98, 117, 103,
+		46, 112, 105, 110, 103, 0, 1, 118,
+	}
+	var obj *Meta
+	if err := msgpack.Unmarshal(data, &obj); err != nil {
+		t.Error(err)
+	}
+	logex.Struct(obj)
 }
 
 func TestMsgpackEncoding(t *testing.T) {

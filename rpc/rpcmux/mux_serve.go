@@ -44,8 +44,8 @@ type ServeMux struct {
 
 func NewServeMux() *ServeMux {
 	sm := &ServeMux{
-		metaEnc:    rpcenc.NewMsgPackEncoding(),
-		bodyEnc:    rpcenc.NewMsgPackEncoding(),
+		metaEnc:    rpcenc.NewJSONEncoding(),
+		bodyEnc:    rpcenc.NewJSONEncoding(),
 		stopChan:   make(chan struct{}),
 		workChan:   make(chan *rpcprot.Packet, 10),
 		handlerMap: make(map[string]HandlerFunc),
