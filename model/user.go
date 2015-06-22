@@ -15,6 +15,7 @@ var (
 	ErrUserEmailInvalid = logex.Define("email '%v' is invalid")
 	ErrUserPswdEmpty    = logex.Define("password is empty")
 	ErrUserLoginFail    = logex.Define("incorrect username or password")
+	ErrUserInvalidUid   = logex.Define("invalid uid")
 
 	ErrUserEmailAlreadyTaken = logex.Define("email '%v' is already taken")
 )
@@ -68,9 +69,9 @@ func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
 }
 
 func (um *UserModel) CheckToken(uid, token string) (bool, error) {
-	id, err := BsonObjectId(uid)
-	if err != nil {
-		return false, logex.Trace(err)
+	id, ok := BsonObjectId(uid)
+	if !ok {
+		return false, ErrUserInvalidUid.Trace()
 	}
 	has, err := um.Has(M{
 		"_id":   id,
@@ -95,9 +96,9 @@ func (um *UserModel) Find(email string) (bool, error) {
 }
 
 func (um *UserModel) GetToken(uid string) (token string, err error) {
-	id, err := BsonObjectId(uid)
-	if err != nil {
-		return "", logex.Trace(err)
+	id, ok := BsonObjectId(uid)
+	if !ok {
+		return "", ErrUserInvalidUid.Trace()
 	}
 
 	var u *User

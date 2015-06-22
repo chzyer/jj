@@ -17,6 +17,11 @@ var (
 	ErrInvalidObject = logex.Define("Invalid input to ObjectIdHex")
 )
 
+type models struct {
+	User    *UserModel
+	Session *SessionModel
+}
+
 func Init(url_ string) (err error) {
 	once.Do(func() {
 		var dbName string
@@ -37,10 +42,6 @@ func IsPanicError(err error) bool {
 	return !logex.Equal(err, mgo.ErrNotFound)
 }
 
-type models struct {
-	User *UserModel
-}
-
 func newModels(dbName string, session *mgo.Session) *models {
 	return &models{
 		User: NewUserModel(NewMdb(dbName, session)),
@@ -49,11 +50,11 @@ func newModels(dbName string, session *mgo.Session) *models {
 
 type M bson.M
 
-func BsonObjectId(id string) (bson.ObjectId, error) {
+func BsonObjectId(id string) (bson.ObjectId, bool) {
 	if !bson.IsObjectIdHex(id) {
-		return "", ErrInvalidObject.Trace()
+		return "", false
 	}
-	return bson.ObjectIdHex(id), nil
+	return bson.ObjectIdHex(id), true
 }
 
 type Indexer interface {

@@ -80,15 +80,17 @@ func Register(w http.ResponseWriter, req *http.Request) {
 }
 
 type LoginResp struct {
-	Result  int      `json:"result"`
-	Token   string   `json:"token"`
-	Uid     string   `json:"uid"`
-	MgrAddr []string `json:"mgraddr"`
+	Result     int      `json:"result"`
+	Token      string   `json:"token"`
+	Uid        string   `json:"uid"`
+	MgrAddr    []string `json:"mgraddr"`
+	NotifyAddr []string `json:"notifyaddr"`
 }
 
 type InitResp struct {
-	Result  int      `json:"result"`
-	MgrAddr []string `json:"mgraddr"`
+	Result     int      `json:"result"`
+	MgrAddr    []string `json:"mgraddr"`
+	NotifyAddr []string `json:"notifyaddr"`
 }
 
 func Login(w http.ResponseWriter, req *http.Request) {
@@ -105,10 +107,11 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	response(w, &LoginResp{
-		Result:  200,
-		Uid:     uid,
-		Token:   token,
-		MgrAddr: NewMgrHost(req),
+		Result:     200,
+		Uid:        uid,
+		Token:      token,
+		MgrAddr:    NewMgrHost(req),
+		NotifyAddr: NewNotifyHost(req),
 	})
 }
 
@@ -132,8 +135,9 @@ func Init(w http.ResponseWriter, req *http.Request) {
 	}
 
 	response(w, &InitResp{
-		Result:  200,
-		MgrAddr: NewMgrHost(req),
+		Result:     200,
+		MgrAddr:    NewMgrHost(req),
+		NotifyAddr: NewNotifyHost(req),
 	})
 }
 
@@ -144,4 +148,13 @@ func NewMgrHost(req *http.Request) []string {
 	}
 
 	return []string{host + ":8682"}
+}
+
+func NewNotifyHost(req *http.Request) []string {
+	host := req.Host
+	if idx := strings.LastIndex(host, ":"); idx > 0 {
+		host = host[:idx]
+	}
+
+	return []string{host + ":8683"}
 }

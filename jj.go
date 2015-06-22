@@ -10,6 +10,7 @@ import (
 	"github.com/jj-io/jj/service"
 	"github.com/jj-io/jj/service/auth"
 	"github.com/jj-io/jj/service/mgr"
+	"github.com/jj-io/jj/service/notify"
 
 	"gopkg.in/logex.v1"
 )
@@ -18,6 +19,7 @@ var (
 	srvs = []*service.ServiceType{
 		{Name: auth.Name, New: auth.NewAuthService},
 		{Name: mgr.Name, New: mgr.NewMgrService},
+		{Name: notify.Name, New: notify.NewNotifyService},
 	}
 )
 
