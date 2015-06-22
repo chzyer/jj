@@ -3,9 +3,23 @@ package rpcmux
 import (
 	"fmt"
 
+	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcprot"
 	"gopkg.in/logex.v1"
 )
+
+type Context struct {
+	MetaEnc rpc.Encoding
+	BodyEnc rpc.Encoding
+}
+
+func NewContext(metaEnc, bodyEnc rpc.Encoding) *Context {
+	ctx := &Context{
+		MetaEnc: metaEnc,
+		BodyEnc: bodyEnc,
+	}
+	return ctx
+}
 
 type responseWriter struct {
 	s  *ServeMux

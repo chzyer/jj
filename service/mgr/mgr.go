@@ -44,7 +44,7 @@ func (a *MgrService) Run() error {
 	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
 		mux := rpcmux.NewServeMux()
 		// fixme
-		mgr.InitHandler(mux)
+		mgr.Init(mux)
 		return rpclink.NewTcpLink(mux)
 	})
 }

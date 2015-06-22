@@ -24,6 +24,7 @@ func NewAesEncoding(enc rpc.Encoding, key []byte) (*AesEncoding, error) {
 		return nil, logex.Trace(err)
 	}
 	return &AesEncoding{
+		enc:    enc,
 		encode: cipher.NewCFBEncrypter(block, commonIV),
 		decode: cipher.NewCFBDecrypter(block, commonIV),
 	}, nil

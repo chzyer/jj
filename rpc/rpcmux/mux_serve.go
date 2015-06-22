@@ -27,21 +27,21 @@ var (
 )
 
 type Request struct {
-	Enc  rpc.Encoding
+	Ctx  *Context
 	Data *rpcprot.Data
 	Meta *rpcprot.Meta
 }
 
-func NewRequest(p *rpcprot.Packet, bodyEnc rpc.Encoding) *Request {
+func NewRequest(p *rpcprot.Packet, ctx *Context) *Request {
 	return &Request{
-		Enc:  bodyEnc,
+		Ctx:  ctx,
 		Meta: p.Meta,
 		Data: p.Data,
 	}
 }
 
 func (r *Request) Params(v interface{}) error {
-	return r.Data.Decode(r.Enc, v)
+	return r.Data.Decode(r.Ctx.BodyEnc, v)
 }
 
 type HandlerFunc func(rpc.ResponseWriter, *Request)
@@ -51,8 +51,7 @@ var _ rpclink.Mux = &ClientMux{}
 // single-conn request multiplexer
 type ServeMux struct {
 	prot        rpcprot.Protocol
-	metaEnc     rpc.Encoding
-	bodyEnc     rpc.Encoding
+	ctx         *Context
 	useEncoding bool
 	state       state
 	workChan    chan *rpcprot.Packet
@@ -63,9 +62,9 @@ type ServeMux struct {
 }
 
 func NewServeMux() *ServeMux {
+	ctx := NewContext(rpcenc.NewJSONEncoding(), rpcenc.NewJSONEncoding())
 	sm := &ServeMux{
-		metaEnc:    rpcenc.NewJSONEncoding(),
-		bodyEnc:    rpcenc.NewJSONEncoding(),
+		ctx:        ctx,
 		stopChan:   make(chan struct{}),
 		workChan:   make(chan *rpcprot.Packet, 10),
 		handlerMap: make(map[string]HandlerFunc),
@@ -93,7 +92,7 @@ func (s *ServeMux) HandleFunc(path string, handlerFunc HandlerFunc) {
 }
 
 func (s *ServeMux) Send(p *rpcprot.Packet) error {
-	err := s.prot.Write(s.metaEnc, s.bodyEnc, p)
+	err := s.prot.Write(s.ctx.MetaEnc, s.ctx.BodyEnc, p)
 	if err != nil {
 		return logex.Trace(err)
 	}
@@ -102,7 +101,7 @@ func (s *ServeMux) Send(p *rpcprot.Packet) error {
 
 func (s *ServeMux) Handle(buf *bytes.Buffer) error {
 	var p rpcprot.Packet
-	if err := s.prot.Read(buf, s.metaEnc, &p); err != nil {
+	if err := s.prot.Read(buf, s.ctx.MetaEnc, &p); err != nil {
 		return logex.Trace(err)
 	}
 	s.workChan <- &p
@@ -114,9 +113,9 @@ func (s *ServeMux) Close() {
 	s.workGroup.Wait()
 }
 
-func (s *ServeMux) handlerWrap(h HandlerFunc, p *rpcprot.Packet, bodyEnc rpc.Encoding) {
+func (s *ServeMux) handlerWrap(h HandlerFunc, p *rpcprot.Packet, ctx *Context) {
 	now := time.Now()
-	h(NewResponseWriter(s, p), NewRequest(p, bodyEnc))
+	h(NewResponseWriter(s, p), NewRequest(p, ctx))
 	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
 }
 
@@ -140,7 +139,7 @@ func (s *ServeMux) handleLoop() {
 			logex.Warn("unknown path: ", op.Meta.Path)
 		}
 
-		go s.handlerWrap(handler, op, s.bodyEnc)
+		go s.handlerWrap(handler, op, s.ctx)
 	}
 }
 

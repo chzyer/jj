@@ -94,6 +94,21 @@ func (um *UserModel) Find(email string) (bool, error) {
 	return has, err
 }
 
+func (um *UserModel) GetToken(uid string) (token string, err error) {
+	id, err := BsonObjectId(uid)
+	if err != nil {
+		return "", logex.Trace(err)
+	}
+
+	var u *User
+	if err := um.One(M{
+		"_id": id,
+	}, &u); err != nil {
+		return "", logex.Trace(err)
+	}
+	return u.Token, nil
+}
+
 func (um *UserModel) Login(email, secret string) (uid, token string, err error) {
 	if !RegexpUserEmail.MatchString(email) {
 		return "", "", ErrUserEmailInvalid.Format(email).SetCode(400)
