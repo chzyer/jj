@@ -17,7 +17,8 @@ import (
 )
 
 type Config struct {
-	MgrHost string `flag:"[0];def=:8682"`
+	Command []string `flag:"cmd"`
+	MgrHost string   `flag:"[0];def=:8682"`
 }
 
 func NewConfig() *Config {
@@ -30,16 +31,9 @@ var mux *rpcmux.ClientMux
 var jsonEnc = rpcenc.NewJSONEncoding()
 
 func getBody(data string) (obj interface{}) {
-	asString := false
-readd:
-	if err := jsonEnc.Decode(rpc.NewBufferString(data), &obj); err != nil {
-		if asString {
-			println("parse params:", err.Error())
-			return
-		}
-		asString = true
-		data = `"` + data + `"`
-		goto readd
+	buf := rpc.NewBufferString(data)
+	if err := jsonEnc.Decode(buf, &obj); err != nil {
+		logex.Error(err)
 	}
 	return
 }
@@ -53,6 +47,17 @@ func process(cmd string) error {
 	} else {
 		path = cmd[:idx]
 		data = cmd[idx+1:]
+	}
+
+	if path == "bodyEnc" {
+		enc, err := rpcenc.NewAesEncoding(mux.Ctx.BodyEnc, []byte(data))
+		if err != nil {
+			println("invalid enc key", data)
+			return nil
+		}
+		mux.Ctx.BodyEnc = enc
+		println("change bodyEnc to aes:", data)
+		return nil
 	}
 
 	var body interface{}
@@ -79,7 +84,7 @@ func process(cmd string) error {
 		return nil
 	}
 	var v interface{}
-	if err := resp.Data.Decode(jsonEnc, &v); err != nil {
+	if err := resp.Data.Decode(mux.Ctx.BodyEnc, &v); err != nil {
 		logex.Error(err)
 		return nil
 	}
@@ -106,6 +111,11 @@ func main() {
 	tcpLink := rpclink.NewTcpLink(mux)
 	if err := rpcapi.Dial(c.MgrHost, tcpLink); err != nil {
 		logex.Fatal(err)
+	}
+
+	for _, c := range c.Command {
+		println(c)
+		process(c)
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)

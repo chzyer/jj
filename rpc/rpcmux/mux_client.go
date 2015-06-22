@@ -28,10 +28,14 @@ type clientWriteContext struct {
 	err    chan error
 }
 
+type ClientCtx struct {
+	MetaEnc rpc.Encoding
+	BodyEnc rpc.Encoding
+}
+
 type ClientMux struct {
-	metaEnc     rpc.Encoding
-	bodyEnc     rpc.Encoding
 	prot        rpcprot.Protocol
+	Ctx         *ClientCtx
 	respChan    chan *rpcprot.Packet
 	writeChan   chan *rpclink.WriteItem
 	stopChan    chan struct{}
@@ -41,8 +45,10 @@ type ClientMux struct {
 
 func NewClientMux() *ClientMux {
 	cm := &ClientMux{
-		metaEnc:   rpcenc.NewJSONEncoding(),
-		bodyEnc:   rpcenc.NewJSONEncoding(),
+		Ctx: &ClientCtx{
+			MetaEnc: rpcenc.NewJSONEncoding(),
+			BodyEnc: rpcenc.NewJSONEncoding(),
+		},
 		stopChan:  make(chan struct{}),
 		respChan:  make(chan *rpcprot.Packet, 10),
 		writeChan: make(chan *rpclink.WriteItem, 10),
@@ -65,7 +71,7 @@ func (c *ClientMux) OnClosed() {
 
 func (c *ClientMux) Handle(buf *bytes.Buffer) error {
 	var data rpcprot.Packet
-	if err := c.prot.Read(buf, c.metaEnc, &data); err != nil {
+	if err := c.prot.Read(buf, c.Ctx.MetaEnc, &data); err != nil {
 		return logex.Trace(err)
 	}
 	c.respChan <- &data
@@ -138,7 +144,7 @@ func (c *ClientMux) Send(w *rpcprot.Packet) (p *rpcprot.Packet, err error) {
 	c.global = append(c.global, item)
 	c.globalGuard.Unlock()
 
-	err = c.prot.Write(c.metaEnc, c.bodyEnc, w)
+	err = c.prot.Write(c.Ctx.MetaEnc, c.Ctx.BodyEnc, w)
 	if err != nil {
 		return nil, logex.Trace(err)
 	}
