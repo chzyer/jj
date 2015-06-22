@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
+	"github.com/bobappleyard/readline"
 	"github.com/chzyer/reflag"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcapi"
@@ -105,6 +106,8 @@ func output(v interface{}) {
 	}
 }
 
+var history = "/tmp/mgrcli.readline"
+
 func main() {
 	c := NewConfig()
 	mux = rpcmux.NewClientMux()
@@ -118,18 +121,30 @@ func main() {
 		process(c)
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
 	go func() {
 		<-mux.GetStopChan()
 		os.Exit(1)
 	}()
-	print("please input: ")
-	for scanner.Scan() {
-		err := process(scanner.Text())
+	if err := readline.LoadHistory(history); err != nil {
+		logex.Error(err)
+	}
+
+	for {
+		l, err := readline.String(">>> ")
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
-			println("bye!")
+			println(err.Error())
 			os.Exit(0)
 		}
-		print("please input: ")
+		if err := process(l); err != nil {
+			println("bye!")
+			os.Exit(1)
+		}
+		readline.AddHistory(l)
+		if err := readline.SaveHistory(history); err != nil {
+			logex.Error(err)
+		}
 	}
 }
