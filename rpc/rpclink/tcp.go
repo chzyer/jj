@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net"
+	"sync/atomic"
 
 	"gopkg.in/logex.v1"
 )
@@ -24,6 +25,7 @@ type TcpLink struct {
 	mux       Mux
 	conn      *net.TCPConn
 	closeChan chan struct{}
+	closed    int32
 }
 
 func NewTcpLink(mux Mux) *TcpLink {
@@ -71,6 +73,8 @@ func (th *TcpLink) HandleWrite() {
 		}
 		select {
 		case item.Resp <- err:
+		case <-th.closeChan:
+			return
 		default:
 		}
 		if err != nil {
@@ -87,6 +91,11 @@ func (th *TcpLink) HandleRead() {
 	)
 	defer th.Close()
 	for {
+		select {
+		case <-th.closeChan:
+			return
+		default:
+		}
 		buffer.Reset()
 		err = th.mux.Handle(buffer)
 		if err != nil {
@@ -99,6 +108,9 @@ func (th *TcpLink) HandleRead() {
 }
 
 func (th *TcpLink) Close() {
+	if !atomic.CompareAndSwapInt32(&th.closed, 0, 1) {
+		return
+	}
 	logex.Info("close tcplink")
 	th.mux.OnClosed()
 	th.conn.Close()

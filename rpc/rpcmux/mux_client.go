@@ -147,7 +147,7 @@ func (c *ClientMux) Send(w *rpcprot.Packet) (p *rpcprot.Packet, err error) {
 	case p = <-item.resp:
 	case err = <-item.err:
 		err = logex.Trace(err)
-	case <-time.After(time.Second):
+	case <-time.After(10 * time.Second):
 		err = logex.Trace(ErrTimeout)
 	case <-c.stopChan:
 		err = logex.Trace(net.ErrWriteToConnected)

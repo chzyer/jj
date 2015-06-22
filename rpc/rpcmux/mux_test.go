@@ -34,9 +34,7 @@ func TestMux(t *testing.T) {
 				Seq:     1,
 				Path:    "debug.sleep",
 			},
-			Data: rpcprot.NewData(&SleepData{
-				Millisecond: 100,
-			}),
+			Data: rpcprot.NewData("100ms"),
 		})
 		if err != nil {
 			t.Fatal(err)

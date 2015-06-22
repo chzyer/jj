@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/chzyer/reflag"
+	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
@@ -27,10 +29,48 @@ func NewConfig() *Config {
 var mux *rpcmux.ClientMux
 var jsonEnc = rpcenc.NewJSONEncoding()
 
+func getBody(data string) (obj interface{}) {
+	asString := false
+readd:
+	if err := jsonEnc.Decode(rpc.NewBufferString(data), &obj); err != nil {
+		if asString {
+			println("parse params:", err.Error())
+			return
+		}
+		asString = true
+		data = `"` + data + `"`
+		goto readd
+	}
+	return
+}
+
 func process(cmd string) error {
-	resp, err := mux.Send(&rpcprot.Packet{
-		Meta: rpcprot.NewMeta(cmd),
-	})
+	var path string
+	var data string
+
+	if idx := strings.Index(cmd, " "); idx < 0 {
+		path = cmd
+	} else {
+		path = cmd[:idx]
+		data = cmd[idx+1:]
+	}
+
+	var body interface{}
+	if data != "" {
+		body = getBody(data)
+		if body == nil {
+			return nil
+		}
+	}
+
+	packet := &rpcprot.Packet{
+		Meta: rpcprot.NewMeta(path),
+	}
+	if body != nil {
+		packet.Data = rpcprot.NewData(body)
+	}
+
+	resp, err := mux.Send(packet)
 	if err != nil {
 		return logex.Trace(err)
 	}
@@ -43,8 +83,21 @@ func process(cmd string) error {
 		logex.Error(err)
 		return nil
 	}
-	fmt.Println(v)
+	output(v)
 	return nil
+}
+
+func output(v interface{}) {
+	switch v := v.(type) {
+	case []interface{}:
+		fmt.Println("[")
+		for _, s := range v {
+			fmt.Print("    ", s, "\n")
+		}
+		fmt.Println("]")
+	default:
+		fmt.Println(v)
+	}
 }
 
 func main() {

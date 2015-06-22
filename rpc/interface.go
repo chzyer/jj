@@ -3,6 +3,7 @@ package rpc
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 	"net"
 )
 
@@ -18,12 +19,21 @@ func NewBuffer(buf *bytes.Buffer) *Buffer {
 	}
 }
 
+func NewBufferString(s string) *Buffer {
+	return NewBuffer(bytes.NewBuffer([]byte(s)))
+}
+
 func (b *Buffer) Read(buf []byte) (int, error) {
 	return b.r.Read(buf)
 }
 
 func (b *Buffer) Prepand(r io.Reader) {
 	b.r = io.MultiReader(r, b.Buffer)
+}
+
+func (b *Buffer) All() []byte {
+	data, _ := ioutil.ReadAll(b.r)
+	return data
 }
 
 type Encoding interface {
@@ -49,7 +59,9 @@ type Linker interface {
 }
 
 type ResponseWriter interface {
+	Responsef(fmt string, data ...interface{}) error
 	Response(data interface{}) error
 	Error(err error) error
+	Errorf(string, ...interface{}) error
 	ErrorInfo(string) error
 }

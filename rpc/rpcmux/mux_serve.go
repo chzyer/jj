@@ -133,53 +133,19 @@ func (s *ServeMux) handleLoop() {
 		}
 
 		logex.Info("comming:", op)
+
 		handler := s.handlerMap[op.Meta.Path]
 		if handler == nil {
 			handler = NotFoundHandler
 			logex.Warn("unknown path: ", op.Meta.Path)
 		}
+
 		go s.handlerWrap(handler, op, s.bodyEnc)
 	}
 }
 
 func NotFoundHandler(w rpc.ResponseWriter, data *Request) {
 	w.ErrorInfo(fmt.Sprintf("path '%v' not found", data.Meta.Path))
-}
-
-type responseWriter struct {
-	s  *ServeMux
-	op *rpcprot.Packet
-}
-
-func NewResponseWriter(s *ServeMux, packet *rpcprot.Packet) *responseWriter {
-	r := &responseWriter{
-		s:  s,
-		op: packet,
-	}
-	return r
-}
-
-func (w *responseWriter) Response(data interface{}) error {
-	return w.s.Send(&rpcprot.Packet{
-		Meta: &rpcprot.Meta{
-			Seq: w.op.Meta.Seq,
-		},
-		Data: rpcprot.NewData(data),
-	})
-}
-
-func (w *responseWriter) ErrorInfo(info string) error {
-	logex.Error(info)
-	return logex.Trace(w.s.Send(&rpcprot.Packet{
-		Meta: rpcprot.NewMetaError(w.op.Meta.Seq, info),
-	}))
-}
-
-func (w *responseWriter) Error(err error) error {
-	logex.Error(err)
-	return logex.Trace(w.s.Send(&rpcprot.Packet{
-		Meta: rpcprot.NewMetaError(w.op.Meta.Seq, err.Error()),
-	}))
 }
 
 func (c *ServeMux) Write(b []byte) (n int, err error) {
