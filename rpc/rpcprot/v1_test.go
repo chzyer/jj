@@ -3,7 +3,6 @@ package rpcprot
 import (
 	"bytes"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/jj-io/jj/rpc/rpcenc"
@@ -15,8 +14,8 @@ func TestV1(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 0, 512))
 	buf2 := bytes.NewBuffer(make([]byte, 0, 512))
 	prot := NewProtocolV1(buf, buf)
-	metaEnc := rpcenc.NewMsgPackEncoding()
-	bodyEnc := rpcenc.NewMsgPackEncoding()
+	metaEnc := rpcenc.NewJSONEncoding()
+	bodyEnc := rpcenc.NewJSONEncoding()
 	p1 := &Packet{
 		Meta: &Meta{
 			Version: 4,
@@ -38,7 +37,11 @@ func TestV1(t *testing.T) {
 		t.Fatal("result not except")
 	}
 
-	if strings.HasSuffix(p1.Data.underlay.(string), string(p.Data.buf)) {
+	var pData string
+	if err := p.Data.Decode(bodyEnc, &pData); err != nil {
+		t.Fatal(err)
+	}
+	if pData != p1.Data.underlay.(string) {
 		t.Fatal("data not except")
 	}
 }

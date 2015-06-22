@@ -17,6 +17,7 @@ type Mux interface {
 	Init(io.Reader)
 	Handle(*bytes.Buffer) error
 	WriteChan() (ch <-chan *WriteItem)
+	OnClosed()
 }
 
 type TcpLink struct {
@@ -35,6 +36,7 @@ func NewTcpLink(mux Mux) *TcpLink {
 
 func (th *TcpLink) Init(conn net.Conn) {
 	th.conn = conn.(*net.TCPConn)
+	logex.Info("connect in:", th.conn.RemoteAddr())
 	th.mux.Init(conn)
 }
 
@@ -88,12 +90,16 @@ func (th *TcpLink) HandleRead() {
 		buffer.Reset()
 		err = th.mux.Handle(buffer)
 		if err != nil {
-			logex.Error(err)
+			if !logex.Equal(err, io.EOF) {
+				logex.Error(err)
+			}
 			break
 		}
 	}
 }
 
 func (th *TcpLink) Close() {
+	logex.Info("close tcplink")
+	th.mux.OnClosed()
 	th.conn.Close()
 }

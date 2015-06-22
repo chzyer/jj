@@ -1,10 +1,14 @@
 package rpcprot
 
-import "gopkg.in/vmihailenco/msgpack.v2"
+import (
+	"bytes"
+
+	"github.com/jj-io/jj/rpc"
+)
 
 type Data struct {
 	underlay interface{}
-	buf      []byte
+	buf      *rpc.Buffer
 }
 
 func NewData(d interface{}) *Data {
@@ -15,10 +19,10 @@ func NewData(d interface{}) *Data {
 
 func NewRawData(buf []byte) *Data {
 	return &Data{
-		buf: buf,
+		buf: rpc.NewBuffer(bytes.NewBuffer(buf)),
 	}
 }
 
-func (d *Data) Unmarshal(v interface{}) error {
-	return msgpack.Unmarshal(d.buf, v)
+func (d *Data) Decode(enc rpc.Encoding, v interface{}) error {
+	return enc.Decode(d.buf, v)
 }

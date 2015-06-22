@@ -40,6 +40,7 @@ func TestMux(t *testing.T) {
 		})
 		if err != nil {
 			t.Fatal(err)
+			return
 		}
 		done <- struct{}{}
 	}()
@@ -50,9 +51,6 @@ func TestMux(t *testing.T) {
 			Path:    "debug.ping",
 		},
 	})
-	if len(done) > 0 {
-		t.Fatal("sleep not working")
-	}
 
 	if err != nil {
 		logex.Error(err)
@@ -63,6 +61,10 @@ func TestMux(t *testing.T) {
 	} else {
 		logex.Error(err)
 		t.Fatal(resp)
+	}
+
+	if len(done) > 0 {
+		t.Fatal("sleep not working")
 	}
 
 	select {

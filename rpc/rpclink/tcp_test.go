@@ -21,6 +21,10 @@ func NewMockMux() *MockMux {
 	}
 }
 
+func (mm *MockMux) OnClosed() {
+
+}
+
 func (mm *MockMux) Init(r io.Reader) {
 	mm.r = r
 }

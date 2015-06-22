@@ -6,7 +6,6 @@ import (
 	"gopkg.in/logex.v1"
 
 	"github.com/jj-io/jj/rpc"
-	"github.com/jj-io/jj/rpc/rpcprot"
 )
 
 func InitDebugHandler(mux *ServeMux) {
@@ -14,7 +13,7 @@ func InitDebugHandler(mux *ServeMux) {
 	mux.HandleFunc("debug.sleep", Sleep)
 }
 
-func Ping(w rpc.ResponseWriter, data *rpcprot.Data) {
+func Ping(w rpc.ResponseWriter, data *Request) {
 	w.Response("pong")
 }
 
@@ -23,9 +22,9 @@ type SleepData struct {
 	Millisecond int `msgpack:"millisecond"`
 }
 
-func Sleep(w rpc.ResponseWriter, data *rpcprot.Data) {
+func Sleep(w rpc.ResponseWriter, data *Request) {
 	var params SleepData
-	data.Unmarshal(&params)
+	data.Params(&params)
 
 	if params.Millisecond > 0 {
 		logex.Infof("sleep %v ms", params.Millisecond)

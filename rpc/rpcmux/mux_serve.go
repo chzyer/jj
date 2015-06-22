@@ -2,8 +2,10 @@ package rpcmux
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
@@ -24,7 +26,25 @@ var (
 	ErrReceiveQuit = logex.Define("operation timeout, client quit")
 )
 
-type HandlerFunc func(rpc.ResponseWriter, *rpcprot.Data)
+type Request struct {
+	Enc  rpc.Encoding
+	Data *rpcprot.Data
+	Meta *rpcprot.Meta
+}
+
+func NewRequest(p *rpcprot.Packet, bodyEnc rpc.Encoding) *Request {
+	return &Request{
+		Enc:  bodyEnc,
+		Meta: p.Meta,
+		Data: p.Data,
+	}
+}
+
+func (r *Request) Params(v interface{}) error {
+	return r.Data.Decode(r.Enc, v)
+}
+
+type HandlerFunc func(rpc.ResponseWriter, *Request)
 
 var _ rpclink.Mux = &ClientMux{}
 
@@ -54,6 +74,14 @@ func NewServeMux() *ServeMux {
 	InitDebugHandler(sm)
 	go sm.handleLoop()
 	return sm
+}
+
+func (s *ServeMux) GetStopChan() <-chan struct{} {
+	return s.stopChan
+}
+
+func (s *ServeMux) OnClosed() {
+	close(s.stopChan)
 }
 
 func (s *ServeMux) Init(r io.Reader) {
@@ -86,6 +114,12 @@ func (s *ServeMux) Close() {
 	s.workGroup.Wait()
 }
 
+func (s *ServeMux) handlerWrap(h HandlerFunc, p *rpcprot.Packet, bodyEnc rpc.Encoding) {
+	now := time.Now()
+	h(NewResponseWriter(s, p), NewRequest(p, bodyEnc))
+	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
+}
+
 func (s *ServeMux) handleLoop() {
 	s.workGroup.Add(1)
 	defer s.workGroup.Done()
@@ -98,13 +132,18 @@ func (s *ServeMux) handleLoop() {
 			return
 		}
 
+		logex.Info("comming:", op)
 		handler := s.handlerMap[op.Meta.Path]
 		if handler == nil {
+			handler = NotFoundHandler
 			logex.Warn("unknown path: ", op.Meta.Path)
-			continue
 		}
-		go handler(NewResponseWriter(s, op), op.Data)
+		go s.handlerWrap(handler, op, s.bodyEnc)
 	}
+}
+
+func NotFoundHandler(w rpc.ResponseWriter, data *Request) {
+	w.ErrorInfo(fmt.Sprintf("path '%v' not found", data.Meta.Path))
 }
 
 type responseWriter struct {
@@ -125,17 +164,21 @@ func (w *responseWriter) Response(data interface{}) error {
 		Meta: &rpcprot.Meta{
 			Seq: w.op.Meta.Seq,
 		},
-		// Data: NewData(data),
+		Data: rpcprot.NewData(data),
 	})
+}
+
+func (w *responseWriter) ErrorInfo(info string) error {
+	logex.Error(info)
+	return logex.Trace(w.s.Send(&rpcprot.Packet{
+		Meta: rpcprot.NewMetaError(w.op.Meta.Seq, info),
+	}))
 }
 
 func (w *responseWriter) Error(err error) error {
 	logex.Error(err)
 	return logex.Trace(w.s.Send(&rpcprot.Packet{
-		Meta: &rpcprot.Meta{
-			Seq:   w.op.Meta.Seq,
-			Error: err.Error(),
-		},
+		Meta: rpcprot.NewMetaError(w.op.Meta.Seq, err.Error()),
 	}))
 }
 

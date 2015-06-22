@@ -3,11 +3,19 @@ package rpcprot
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"io"
+	"io/ioutil"
+	"sync/atomic"
 
 	"github.com/jj-io/jj/rpc"
 
 	"gopkg.in/logex.v1"
+)
+
+var (
+	version = 1
+	seq     uint64
 )
 
 type Packet struct {
@@ -15,11 +23,35 @@ type Packet struct {
 	Data *Data
 }
 
+func NewPacket(path string, data interface{}) *Packet {
+	return &Packet{
+		Meta: NewMeta(path),
+	}
+}
+
+func (p *Packet) String() string {
+	return fmt.Sprintf("meta:%+v data:%+v", p.Meta, p.Data)
+}
+
 type Meta struct {
-	Version int    `msgpack:"version,omitempty"`
-	Seq     int    `msgpack:"seq,omitempty"`
-	Path    string `msgpack:"path,omitempty"`
-	Error   string `msgpack:"error,omitempty"`
+	Version int    `json:"version,omitempty"`
+	Seq     uint64 `json:"seq"`
+	Path    string `json:"path,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
+func NewMeta(path string) *Meta {
+	return &Meta{
+		Path: path,
+		Seq:  atomic.AddUint64(&seq, 1),
+	}
+}
+
+func NewMetaError(seq uint64, err string) *Meta {
+	return &Meta{
+		Error: err,
+		Seq:   seq,
+	}
 }
 
 type ProtocolV1 struct {
@@ -50,11 +82,13 @@ func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *Packet) e
 		return logex.Trace(err)
 	}
 
-	if err := metaEnc.Decode(buf, &p.Meta); err != nil {
+	br := rpc.NewBuffer(buf)
+	if err := metaEnc.Decode(br, &p.Meta); err != nil {
 		return logex.Trace(err, length, buf.Bytes())
 	}
+	data, _ := ioutil.ReadAll(br)
 
-	p.Data = NewRawData(buf.Bytes())
+	p.Data = NewRawData(data)
 	return nil
 }
 
@@ -70,6 +104,8 @@ func (p1 *ProtocolV1) Write(metaEnc, bodyEnc rpc.Encoding, p *Packet) error {
 			return logex.Trace(err)
 		}
 	}
+
+	logex.Debug("write: ", buf.Bytes())
 
 	binary.BigEndian.PutUint32(underBuf[:4], uint32(buf.Len()-4))
 	n, err := p1.w.Write(buf.Bytes())

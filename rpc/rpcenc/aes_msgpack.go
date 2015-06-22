@@ -30,7 +30,7 @@ func NewAesEncoding(enc rpc.Encoding, key []byte) (*AesEncoding, error) {
 }
 
 func (mp *AesEncoding) Decode(r rpc.BufferReader, v interface{}) error {
-	buf := bytes.NewBuffer(make([]byte, 0, r.Len()))
+	buf := rpc.NewBuffer(bytes.NewBuffer(make([]byte, 0, r.Len())))
 	r.WriteTo(buf)
 	mp.encode.XORKeyStream(buf.Bytes(), buf.Bytes())
 	return mp.enc.Decode(buf, v)

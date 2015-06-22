@@ -11,6 +11,8 @@ import (
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcprot"
 
+	"net"
+
 	"gopkg.in/logex.v1"
 )
 
@@ -32,6 +34,7 @@ type ClientMux struct {
 	prot        rpcprot.Protocol
 	respChan    chan *rpcprot.Packet
 	writeChan   chan *rpclink.WriteItem
+	stopChan    chan struct{}
 	global      []*clientWriteContext
 	globalGuard sync.Mutex
 }
@@ -40,6 +43,7 @@ func NewClientMux() *ClientMux {
 	cm := &ClientMux{
 		metaEnc:   rpcenc.NewJSONEncoding(),
 		bodyEnc:   rpcenc.NewJSONEncoding(),
+		stopChan:  make(chan struct{}),
 		respChan:  make(chan *rpcprot.Packet, 10),
 		writeChan: make(chan *rpclink.WriteItem, 10),
 	}
@@ -49,6 +53,14 @@ func NewClientMux() *ClientMux {
 
 func (c *ClientMux) Init(r io.Reader) {
 	c.prot = rpcprot.NewProtocolV1(r, c)
+}
+
+func (s *ClientMux) GetStopChan() <-chan struct{} {
+	return s.stopChan
+}
+
+func (c *ClientMux) OnClosed() {
+	close(c.stopChan)
 }
 
 func (c *ClientMux) Handle(buf *bytes.Buffer) error {
@@ -69,6 +81,9 @@ func (c *ClientMux) respLoop() {
 		op = nil
 		select {
 		case packet = <-c.respChan:
+			logex.Debug("client rece:", packet)
+		case <-c.stopChan:
+			return
 		}
 
 		c.globalGuard.Lock()
@@ -87,7 +102,7 @@ func (c *ClientMux) respLoop() {
 
 		if op == nil {
 			// TODO: add stat
-			logex.Info("operation not found:", packet)
+			logex.Info("receive packet which not found sender:", packet)
 			continue
 		}
 
@@ -134,6 +149,8 @@ func (c *ClientMux) Send(w *rpcprot.Packet) (p *rpcprot.Packet, err error) {
 		err = logex.Trace(err)
 	case <-time.After(time.Second):
 		err = logex.Trace(ErrTimeout)
+	case <-c.stopChan:
+		err = logex.Trace(net.ErrWriteToConnected)
 	}
 	return
 }
