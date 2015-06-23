@@ -1,6 +1,7 @@
 package rpclink
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"net"
@@ -39,7 +40,7 @@ func NewTcpLink(mux Mux) *TcpLink {
 func (th *TcpLink) Init(conn net.Conn) {
 	th.conn = conn.(*net.TCPConn)
 	logex.Info("connect in:", th.conn.RemoteAddr())
-	th.mux.Init(conn)
+	th.mux.Init(bufio.NewReader(conn))
 }
 
 func (th *TcpLink) Protocol() string {
