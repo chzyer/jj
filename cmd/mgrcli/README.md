@@ -1,8 +1,14 @@
 # MgrCli
 
-a test client for mgr
+a testing commond-line for mgr service
 
-# dependence:
+# usage
+
+```
+<api path> <json data struct>
+```
+
+# dependence
 
 osx:
 ```
