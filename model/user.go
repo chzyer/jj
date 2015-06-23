@@ -16,6 +16,7 @@ var (
 	ErrUserPswdEmpty    = logex.Define("password is empty")
 	ErrUserLoginFail    = logex.Define("incorrect username or password")
 	ErrUserInvalidUid   = logex.Define("invalid uid")
+	ErrUserIdNotFound   = logex.Define("user not found")
 
 	ErrUserEmailAlreadyTaken = logex.Define("email '%v' is already taken")
 )
@@ -77,6 +78,17 @@ func (um *UserModel) CheckToken(uid, token string) (bool, error) {
 		"_id":   id,
 		"token": token,
 	})
+	if err != nil {
+		return false, logex.Trace(err)
+	}
+	return has, nil
+}
+
+func (um *UserModel) HasUid(uid string) (bool, error) {
+	if !bson.IsObjectIdHex(uid) {
+		return false, ErrUserInvalidUid.Trace()
+	}
+	has, err := um.Has(M{"uid": uid})
 	if err != nil {
 		return false, logex.Trace(err)
 	}
