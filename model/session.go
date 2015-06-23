@@ -49,8 +49,9 @@ func (sm *SessionModel) New(uid, toUid string) (s *Session, err error) {
 	}, M{"$setOnInsert": M{
 		"": "",
 	}})); err != nil {
-		return
+		return nil, err
 	}
+	return
 }
 
 func (sm *SessionModel) Get(sessionId string) (s *Session, err error) {
