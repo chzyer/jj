@@ -16,10 +16,16 @@ var (
 	ErrInvalidToken = logex.Define("invalid token")
 )
 
+var (
+	RouterRegister = "/auth/register"
+	RouterLogin    = "/auth/login"
+	RouterInit     = "/auth/init"
+)
+
 func InitHandler(mux *http.ServeMux) {
-	mux.HandleFunc("/auth/register", Register)
-	mux.HandleFunc("/auth/login", Login)
-	mux.HandleFunc("/auth/init", Init)
+	mux.HandleFunc(RouterRegister, Register)
+	mux.HandleFunc(RouterLogin, Login)
+	mux.HandleFunc(RouterInit, Init)
 }
 
 func response(w http.ResponseWriter, obj interface{}) {
@@ -51,8 +57,12 @@ func response(w http.ResponseWriter, obj interface{}) {
 }
 
 type RegisterResp struct {
-	Result int    `json:"result"`
-	Uid    string `json:"uid"`
+	Result     int      `json:"result"`
+	Reason     string   `json:"reason,omitempty"`
+	Token      string   `json:"token"`
+	Uid        string   `json:"uid"`
+	MgrAddr    []string `json:"mgraddr"`
+	NotifyAddr []string `json:"notifyaddr"`
 }
 
 type ErrorResp struct {
@@ -68,19 +78,21 @@ func Register(w http.ResponseWriter, req *http.Request) {
 
 	email := req.FormValue("email")
 	secret := req.FormValue("secret")
-	id, err := model.Models.User.Register(email, secret)
+	u, err := model.Models.User.Register(email, secret)
 	if err != nil {
 		response(w, err)
 		return
 	}
 	response(w, &RegisterResp{
 		Result: 200,
-		Uid:    id.Hex(),
+		Uid:    u.Id.Hex(),
+		Token:  u.Token,
 	})
 }
 
 type LoginResp struct {
 	Result     int      `json:"result"`
+	Reason     string   `json:"reason,omitempty"`
 	Token      string   `json:"token"`
 	Uid        string   `json:"uid"`
 	MgrAddr    []string `json:"mgraddr"`
@@ -99,8 +111,8 @@ func Login(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	email := req.FormValue("email")
-	secret := req.FormValue("secret")
+	email := req.PostFormValue("email")
+	secret := req.PostFormValue("secret")
 	uid, token, err := model.Models.User.Login(email, secret)
 	if err != nil {
 		response(w, err)
@@ -121,8 +133,8 @@ func Init(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	uid := req.FormValue("uid")
-	token := req.FormValue("token")
+	uid := req.PostFormValue("uid")
+	token := req.PostFormValue("token")
 
 	ok, err := model.Models.User.CheckToken(uid, token)
 	if err != nil {
