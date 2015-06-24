@@ -2,13 +2,12 @@ package mq
 
 import (
 	"reflect"
-	"sync"
 	"sync/atomic"
 )
 
 type Subscriber interface {
 	Name() string
-	ToSelectCase() reflect.SelectCase
+	ToSelectCase() *reflect.SelectCase
 }
 
 type Topic struct {
@@ -80,99 +79,4 @@ func (t *Topic) Publish(data []byte) {
 	for i := 0; i < len(t.Chans); i++ {
 		t.Chans[i].Write(data)
 	}
-}
-
-type Channel struct {
-	Name              string
-	Topic             string
-	subscriber        []Subscriber
-	selectCase        []reflect.SelectCase
-	underlay          chan []byte
-	newSubscriberChan chan struct{}
-	mutex             sync.Mutex
-}
-
-func NewChannel(topic, name string) *Channel {
-	ch := &Channel{
-		Name:              name,
-		underlay:          make(chan []byte, 10),
-		newSubscriberChan: make(chan struct{}),
-	}
-	ch.selectCase = []reflect.SelectCase{
-		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch.newSubscriberChan)},
-	}
-
-	go ch.dispatchLoop()
-	return ch
-}
-
-func (ch *Channel) dispatchLoop() {
-	var (
-		data     []byte
-		selected int
-	)
-	for {
-		select {
-		case data = <-ch.underlay:
-		}
-		val := reflect.ValueOf(&Msg{
-			Topic:   ch.Topic,
-			channel: ch.Name,
-			Data:    data,
-		})
-
-		try := 0
-	reDispatch:
-		ch.mutex.Lock()
-		if len(ch.selectCase) > 0 {
-			for i := 1; i < len(ch.selectCase); i++ {
-				ch.selectCase[i].Send = val
-			}
-			selected, _, _ = reflect.Select(ch.selectCase)
-		}
-		ch.mutex.Unlock()
-		//println(ch, "select", selected, len(ch.selectCase))
-		if selected == 0 {
-			try++
-			goto reDispatch
-		}
-	}
-}
-
-func (ch *Channel) AddSubscriber(s Subscriber) {
-	ch.mutex.Lock()
-	ch.subscriber = append(ch.subscriber, s)
-	ch.selectCase = append(ch.selectCase, s.ToSelectCase())
-	println(ch, "length:", len(ch.subscriber))
-	ch.mutex.Unlock()
-
-	println(2)
-	select {
-	case ch.newSubscriberChan <- struct{}{}:
-	default:
-	}
-}
-
-func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {
-	ch.mutex.Lock()
-	defer ch.mutex.Unlock()
-
-	idx = -1
-	for i := range ch.subscriber {
-		if ch.subscriber[i] == s {
-			idx = i
-			break
-		}
-	}
-	if idx < 0 {
-		return
-	}
-
-	ch.subscriber = append(ch.subscriber[:idx], ch.subscriber[idx+1:]...)
-	ch.selectCase = append(ch.selectCase[:idx], ch.selectCase[idx+1:]...)
-	return
-}
-
-func (ch *Channel) Write(data []byte) {
-	ch.underlay <- data
 }

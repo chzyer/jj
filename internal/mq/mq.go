@@ -90,8 +90,8 @@ func (c *MqClient) Unsubscribe(topic, channel string) error {
 	return nil
 }
 
-func (c *MqClient) ToSelectCase() reflect.SelectCase {
-	return reflect.SelectCase{
+func (c *MqClient) ToSelectCase() *reflect.SelectCase {
+	return &reflect.SelectCase{
 		Dir:  reflect.SelectSend,
 		Chan: reflect.ValueOf(c.respChan),
 	}
