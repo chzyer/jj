@@ -21,11 +21,7 @@ func NewResponseWriter(s *ServeMux, packet *rpc.Packet) *responseWriter {
 }
 
 func (w *responseWriter) routerList() []string {
-	var s []string
-	for k := range w.s.Handler.handlerMap {
-		s = append(s, k)
-	}
-	return s
+	return w.s.handler.ListPath()
 }
 
 func (w *responseWriter) Responsef(fmt_ string, obj ...interface{}) error {

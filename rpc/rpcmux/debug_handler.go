@@ -12,7 +12,7 @@ var (
 	RouterHelp       = "help"
 )
 
-func InitDebugHandler(handler *Handler) {
+func InitDebugHandler(handler rpc.Handler) {
 	handler.HandleFunc(RouterDebugPing, Ping)
 	handler.HandleFunc(RouterDebugSleep, Sleep)
 	handler.HandleFunc(RouterHelp, Help)

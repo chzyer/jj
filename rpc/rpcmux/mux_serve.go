@@ -28,7 +28,7 @@ var _ rpc.Mux = &ClientMux{}
 
 // single-conn request multiplexer
 type ServeMux struct {
-	prot        rpcprot.Protocol
+	prot        rpc.Protocol
 	ctx         *rpc.Context
 	useEncoding bool
 	state       state
@@ -36,23 +36,20 @@ type ServeMux struct {
 	workGroup   sync.WaitGroup
 	stopChan    chan struct{}
 	writeChan   chan *rpc.WriteItem
-	Handler     *Handler
+	handler     rpc.Handler
 }
 
-func NewServeMux() *ServeMux {
+func NewServeMux(handler rpc.Handler) *ServeMux {
 	ctx := rpc.NewContext(rpcenc.NewJSONEncoding(), rpcenc.NewJSONEncoding())
 	sm := &ServeMux{
 		ctx:       ctx,
 		stopChan:  make(chan struct{}),
 		workChan:  make(chan *rpc.Packet, 10),
 		writeChan: make(chan *rpc.WriteItem),
+		handler:   handler,
 	}
 	go sm.handleLoop()
 	return sm
-}
-
-func (s *ServeMux) SetHandler(h *Handler) {
-	s.Handler = h
 }
 
 func (s *ServeMux) GetStopChan() <-chan struct{} {
@@ -109,7 +106,7 @@ func (s *ServeMux) handleLoop() {
 
 		logex.Info("comming:", op)
 
-		handler := s.Handler.GetHandler(op.Meta.Path)
+		handler := s.handler.GetHandler(op.Meta.Path)
 		go s.handlerWrap(handler, op, s.ctx)
 	}
 }

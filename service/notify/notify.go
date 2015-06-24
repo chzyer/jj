@@ -50,7 +50,8 @@ func (a *NotifyService) Name() string {
 func (a *NotifyService) Run() error {
 	logex.Infof("[notify] listen on %v", a.Listen)
 	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
-		mux := rpcmux.NewServeMux()
+		handler := rpcmux.NewPathHandler()
+		mux := rpcmux.NewServeMux(handler)
 		// fixme
 
 		notify.Init(mux)

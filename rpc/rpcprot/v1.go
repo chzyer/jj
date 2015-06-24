@@ -21,7 +21,7 @@ type ProtocolV1 struct {
 	w io.Writer
 }
 
-func NewProtocolV1(r io.Reader, w io.Writer) Protocol {
+func NewProtocolV1(r io.Reader, w io.Writer) *ProtocolV1 {
 	return &ProtocolV1{
 		r: &io.LimitedReader{r, 0},
 		w: w,

@@ -4,14 +4,13 @@ import (
 	"github.com/jj-io/jj/model"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
-	"github.com/jj-io/jj/rpc/rpcmux"
 )
 
 var (
 	RouterInit = "init"
 )
 
-func Init(h *rpcmux.Handler) {
+func Init(h rpc.Handler) {
 	h.HandleFunc(RouterInit, InitHandler)
 	InitUserHandler(h)
 }

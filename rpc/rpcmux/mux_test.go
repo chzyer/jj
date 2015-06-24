@@ -14,7 +14,8 @@ import (
 func TestMux(t *testing.T) {
 	go func() {
 		rpcapi.Listen(":12346", "tcp", func() rpc.Linker {
-			serveMux := NewServeMux()
+			handler := NewPathHandler()
+			serveMux := NewServeMux(handler)
 			return rpclink.NewTcpLink(serveMux)
 		})
 	}()

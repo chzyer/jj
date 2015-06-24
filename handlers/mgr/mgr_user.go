@@ -1,7 +1,7 @@
 package mgr
 
-import "github.com/jj-io/jj/rpc/rpcmux"
+import "github.com/jj-io/jj/rpc"
 
-func InitUserHandler(h *rpcmux.Handler) {
+func InitUserHandler(h rpc.Handler) {
 
 }

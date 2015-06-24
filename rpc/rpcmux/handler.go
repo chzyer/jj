@@ -8,26 +8,34 @@ import (
 	"github.com/jj-io/jj/rpc"
 )
 
-type Handler struct {
+type PathHandler struct {
 	handlerMap map[string]rpc.HandlerFunc
 }
 
-func NewHandler() *Handler {
-	h := &Handler{
+func NewPathHandler() *PathHandler {
+	h := &PathHandler{
 		handlerMap: make(map[string]rpc.HandlerFunc),
 	}
 	InitDebugHandler(h)
 	return h
 }
 
-func (h *Handler) HandleFunc(path string, handlerFunc rpc.HandlerFunc) {
+func (h *PathHandler) ListPath() []string {
+	var s []string
+	for k := range h.handlerMap {
+		s = append(s, k)
+	}
+	return s
+}
+
+func (h *PathHandler) HandleFunc(path string, handlerFunc rpc.HandlerFunc) {
 	if h == nil {
 		return
 	}
 	h.handlerMap[path] = handlerFunc
 }
 
-func (h *Handler) GetHandler(path string) (handler rpc.HandlerFunc) {
+func (h *PathHandler) GetHandler(path string) (handler rpc.HandlerFunc) {
 	if h != nil {
 		handler = h.handlerMap[path]
 	}

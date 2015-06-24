@@ -33,7 +33,7 @@ type ClientCtx struct {
 }
 
 type ClientMux struct {
-	prot        rpcprot.Protocol
+	prot        rpc.Protocol
 	Ctx         *ClientCtx
 	respChan    chan *rpc.Packet
 	writeChan   chan *rpc.WriteItem

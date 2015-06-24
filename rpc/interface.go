@@ -7,6 +7,12 @@ import (
 	"net"
 )
 
+type Handler interface {
+	GetHandler(path string) (handler HandlerFunc)
+	HandleFunc(path string, handlerFunc HandlerFunc)
+	ListPath() []string
+}
+
 type HandlerFunc func(ResponseWriter, *Request)
 
 type WriteItem struct {
@@ -19,21 +25,6 @@ type Mux interface {
 	Handle(*bytes.Buffer) error
 	WriteChan() (ch <-chan *WriteItem)
 	OnClosed()
-}
-
-type Error struct {
-	error
-	IsUserError bool
-}
-
-func NewError(err error, user bool) *Error {
-	if err != nil {
-		return nil
-	}
-	return &Error{
-		error:       err,
-		IsUserError: user,
-	}
 }
 
 type Buffer struct {
@@ -93,4 +84,9 @@ type ResponseWriter interface {
 	Error(err error) error
 	Errorf(string, ...interface{}) error
 	ErrorInfo(string) error
+}
+
+type Protocol interface {
+	Read(buf *bytes.Buffer, metaEnc Encoding, p *Packet) error
+	Write(metaEnc, bodyEnc Encoding, p *Packet) error
 }
