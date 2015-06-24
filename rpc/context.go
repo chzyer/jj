@@ -1,12 +1,17 @@
 package rpc
 
-type Context struct {
+type Context interface {
+}
+
+type GenContext func() Context
+
+type EncContext struct {
 	MetaEnc Encoding
 	BodyEnc Encoding
 }
 
-func NewContext(metaEnc, bodyEnc Encoding) *Context {
-	ctx := &Context{
+func NewEncContext(metaEnc, bodyEnc Encoding) *EncContext {
+	ctx := &EncContext{
 		MetaEnc: metaEnc,
 		BodyEnc: bodyEnc,
 	}

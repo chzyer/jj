@@ -12,6 +12,7 @@ func TestMq(t *testing.T) {
 	client.Subscribe("to:me", "android")
 	mq.Publish("to:me", []byte("suck"))
 	for i := 0; i < 2; i++ {
+		println("sub:", i)
 		select {
 		case msg := <-client.respChan:
 			if string(msg.Data) != "suck" {

@@ -14,7 +14,15 @@ import (
 	"gopkg.in/logex.v1"
 )
 
-var Name = "mgr"
+var (
+	Name       = "mgr"
+	Desc       = "process requests from client"
+	mgrHandler = rpcmux.NewPathHandler()
+)
+
+func init() {
+	mgr.Init(mgrHandler)
+}
 
 type Config struct {
 	Listen       string        `flag:"def=:8682;usage=listen port"`
@@ -42,11 +50,7 @@ func (a *MgrService) Name() string { return Name }
 func (a *MgrService) Run() error {
 	logex.Infof("[mgr] listen on %v", a.Listen)
 	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
-		handler := rpcmux.NewPathHandler()
-		mgr.Init(handler)
-		mux := rpcmux.NewServeMux(handler)
-		// fixme
-
+		mux := rpcmux.NewServeMux(mgrHandler, nil)
 		return rpclink.NewTcpLink(mux)
 	})
 }

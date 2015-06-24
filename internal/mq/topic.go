@@ -83,31 +83,37 @@ func (t *Topic) Publish(data []byte) {
 }
 
 type Channel struct {
-	Name       string
-	Topic      string
-	subscriber []Subscriber
-	selectCase []reflect.SelectCase
-	underlay   chan []byte
-	mutex      sync.Mutex
+	Name              string
+	Topic             string
+	subscriber        []Subscriber
+	selectCase        []reflect.SelectCase
+	underlay          chan []byte
+	newSubscriberChan chan struct{}
+	mutex             sync.Mutex
 }
 
 func NewChannel(topic, name string) *Channel {
 	ch := &Channel{
-		Name:     name,
-		underlay: make(chan []byte, 10),
+		Name:              name,
+		underlay:          make(chan []byte, 10),
+		newSubscriberChan: make(chan struct{}),
 	}
-	go ch.moveLoop()
+	ch.selectCase = []reflect.SelectCase{
+		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch.newSubscriberChan)},
+	}
+
+	go ch.dispatchLoop()
 	return ch
 }
 
-func (ch *Channel) moveLoop() {
+func (ch *Channel) dispatchLoop() {
 	var (
-		data []byte
+		data     []byte
+		selected int
 	)
 	for {
 		select {
 		case data = <-ch.underlay:
-
 		}
 		val := reflect.ValueOf(&Msg{
 			Topic:   ch.Topic,
@@ -115,15 +121,21 @@ func (ch *Channel) moveLoop() {
 			Data:    data,
 		})
 
+		try := 0
+	reDispatch:
 		ch.mutex.Lock()
-		sc := make([]reflect.SelectCase, len(ch.selectCase))
-		for i := 0; i < len(ch.selectCase); i++ {
-			sc[i] = ch.selectCase[i]
-			sc[i].Send = val
+		if len(ch.selectCase) > 0 {
+			for i := 1; i < len(ch.selectCase); i++ {
+				ch.selectCase[i].Send = val
+			}
+			selected, _, _ = reflect.Select(ch.selectCase)
 		}
 		ch.mutex.Unlock()
-		reflect.Select(sc)
-
+		//println(ch, "select", selected, len(ch.selectCase))
+		if selected == 0 {
+			try++
+			goto reDispatch
+		}
 	}
 }
 
@@ -131,7 +143,14 @@ func (ch *Channel) AddSubscriber(s Subscriber) {
 	ch.mutex.Lock()
 	ch.subscriber = append(ch.subscriber, s)
 	ch.selectCase = append(ch.selectCase, s.ToSelectCase())
+	println(ch, "length:", len(ch.subscriber))
 	ch.mutex.Unlock()
+
+	println(2)
+	select {
+	case ch.newSubscriberChan <- struct{}{}:
+	default:
+	}
 }
 
 func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {

@@ -12,7 +12,10 @@ import (
 	"gopkg.in/logex.v1"
 )
 
-var Name = "auth"
+var (
+	Name = "auth"
+	Desc = "offer tokens and direct client to connect other services"
+)
 
 type Config struct {
 	Mongo        string        `flag:"def=localhost:3000/jj"`
@@ -46,7 +49,7 @@ func (a *AuthService) Name() string {
 
 func (a *AuthService) Run() error {
 	mux := http.NewServeMux()
-	auth.InitHandler(mux)
+	auth.Init(mux)
 	srv := &http.Server{
 		Addr:         a.Listen,
 		Handler:      mux,

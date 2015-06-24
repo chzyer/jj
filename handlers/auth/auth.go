@@ -22,10 +22,10 @@ var (
 	RouterInit     = "/auth/init"
 )
 
-func InitHandler(mux *http.ServeMux) {
-	mux.HandleFunc(RouterRegister, Register)
-	mux.HandleFunc(RouterLogin, Login)
-	mux.HandleFunc(RouterInit, Init)
+func Init(mux *http.ServeMux) {
+	mux.HandleFunc(RouterRegister, RegisterHandler)
+	mux.HandleFunc(RouterLogin, LoginHandler)
+	mux.HandleFunc(RouterInit, InitHandler)
 }
 
 func response(w http.ResponseWriter, obj interface{}) {
@@ -70,7 +70,7 @@ type ErrorResp struct {
 	Reason string `json:"reason"`
 }
 
-func Register(w http.ResponseWriter, req *http.Request) {
+func RegisterHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method != "POST" {
 		http.Error(w, "Method not allowed", 405)
 		return
@@ -107,7 +107,7 @@ type InitResp struct {
 	NotifyAddr []string `json:"notifyaddr"`
 }
 
-func Login(w http.ResponseWriter, req *http.Request) {
+func LoginHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method != "POST" {
 		http.Error(w, "Method not allowed", 405)
 		return
@@ -129,7 +129,7 @@ func Login(w http.ResponseWriter, req *http.Request) {
 	})
 }
 
-func Init(w http.ResponseWriter, req *http.Request) {
+func InitHandler(w http.ResponseWriter, req *http.Request) {
 	if req.Method != "POST" {
 		http.Error(w, "Method not allowed", 405)
 		return

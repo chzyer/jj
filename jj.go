@@ -10,6 +10,7 @@ import (
 	"github.com/jj-io/jj/service"
 	"github.com/jj-io/jj/service/auth"
 	"github.com/jj-io/jj/service/mgr"
+	"github.com/jj-io/jj/service/mq"
 	"github.com/jj-io/jj/service/notify"
 
 	"gopkg.in/logex.v1"
@@ -17,9 +18,10 @@ import (
 
 var (
 	srvs = []*service.ServiceType{
-		{Name: auth.Name, New: auth.NewAuthService},
-		{Name: mgr.Name, New: mgr.NewMgrService},
-		{Name: notify.Name, New: notify.NewNotifyService},
+		{Name: auth.Name, Desc: auth.Desc, New: auth.NewAuthService},
+		{Name: mgr.Name, Desc: mgr.Desc, New: mgr.NewMgrService},
+		{Name: notify.Name, Desc: notify.Desc, New: notify.NewNotifyService},
+		{Name: mq.Name, Desc: mq.Desc, New: mq.NewMqService},
 	}
 )
 
@@ -41,7 +43,7 @@ example:
 func serviceNames() []string {
 	s := make([]string, len(srvs))
 	for i := range srvs {
-		s[i] = srvs[i].Name
+		s[i] = srvs[i].Name + ": " + srvs[i].Desc
 	}
 	return s
 }

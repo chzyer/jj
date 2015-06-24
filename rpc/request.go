@@ -1,12 +1,13 @@
 package rpc
 
 type Request struct {
-	Ctx  *Context
+	Gtx  Context
+	Ctx  *EncContext
 	Data *Data
 	Meta *Meta
 }
 
-func NewRequest(p *Packet, ctx *Context) *Request {
+func NewRequest(p *Packet, ctx *EncContext) *Request {
 	return &Request{
 		Ctx:  ctx,
 		Meta: p.Meta,

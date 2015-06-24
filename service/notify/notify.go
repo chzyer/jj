@@ -15,7 +15,15 @@ import (
 	"gopkg.in/logex.v1"
 )
 
-var Name = "notify"
+var (
+	Name          = "notify"
+	Desc          = "send message to client, consumers to mq service"
+	notifyHandler = rpcmux.NewPathHandler()
+)
+
+func init() {
+	notify.Init(notifyHandler)
+}
 
 type Config struct {
 	Mongo        string        `flag:"def=localhost:3000/jj"`
@@ -50,11 +58,7 @@ func (a *NotifyService) Name() string {
 func (a *NotifyService) Run() error {
 	logex.Infof("[notify] listen on %v", a.Listen)
 	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
-		handler := rpcmux.NewPathHandler()
-		mux := rpcmux.NewServeMux(handler)
-		// fixme
-
-		notify.Init(mux)
+		mux := rpcmux.NewServeMux(notifyHandler, nil)
 		return rpclink.NewTcpLink(mux)
 	})
 }

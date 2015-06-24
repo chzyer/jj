@@ -29,7 +29,9 @@ var _ rpc.Mux = &ClientMux{}
 // single-conn request multiplexer
 type ServeMux struct {
 	prot        rpc.Protocol
-	ctx         *rpc.Context
+	ctx         *rpc.EncContext
+	gtx         rpc.Context
+	ctxFunc     rpc.GenContext
 	useEncoding bool
 	state       state
 	workChan    chan *rpc.Packet
@@ -39,10 +41,14 @@ type ServeMux struct {
 	handler     rpc.Handler
 }
 
-func NewServeMux(handler rpc.Handler) *ServeMux {
-	ctx := rpc.NewContext(rpcenc.NewJSONEncoding(), rpcenc.NewJSONEncoding())
+func NewServeMux(handler rpc.Handler, ctxFunc rpc.GenContext) *ServeMux {
+	ctx := rpc.NewEncContext(
+		rpcenc.NewJSONEncoding(),
+		rpcenc.NewJSONEncoding(),
+	)
 	sm := &ServeMux{
 		ctx:       ctx,
+		ctxFunc:   ctxFunc,
 		stopChan:  make(chan struct{}),
 		workChan:  make(chan *rpc.Packet, 10),
 		writeChan: make(chan *rpc.WriteItem),
@@ -62,6 +68,9 @@ func (s *ServeMux) OnClosed() {
 
 func (s *ServeMux) Init(r io.Reader) {
 	s.prot = rpcprot.NewProtocolV1(r, s)
+	if s.ctxFunc != nil {
+		s.gtx = s.ctxFunc()
+	}
 }
 
 func (s *ServeMux) Send(p *rpc.Packet) error {
@@ -86,7 +95,7 @@ func (s *ServeMux) Close() {
 	s.workGroup.Wait()
 }
 
-func (s *ServeMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet, ctx *rpc.Context) {
+func (s *ServeMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet, ctx *rpc.EncContext) {
 	now := time.Now()
 	h(NewResponseWriter(s, p), rpc.NewRequest(p, ctx))
 	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
