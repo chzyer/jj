@@ -39,7 +39,7 @@ func NewTcpLink(mux Mux) *TcpLink {
 
 func (th *TcpLink) Init(conn net.Conn) {
 	th.conn = conn.(*net.TCPConn)
-	logex.Info("connect in:", th.conn.RemoteAddr())
+	logex.Debug("connect in:", th.conn.RemoteAddr())
 	th.mux.Init(bufio.NewReader(conn))
 }
 
@@ -112,7 +112,7 @@ func (th *TcpLink) Close() {
 	if !atomic.CompareAndSwapInt32(&th.closed, 0, 1) {
 		return
 	}
-	logex.Info("close tcplink")
+	logex.Debug("close tcplink")
 	th.mux.OnClosed()
 	th.conn.Close()
 }
