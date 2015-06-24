@@ -20,7 +20,7 @@ func NewMgrCli(mgrAddr []string) (*MgrCli, error) {
 	cli := &MgrCli{
 		Addr: mgrAddr,
 	}
-	cli.Mux = rpcmux.NewClientMux()
+	cli.Mux = rpcmux.NewClientMux(nil)
 	cli.Link = rpclink.NewTcpLink(cli.Mux)
 	if err := cli.connect(); err != nil {
 		return nil, err
@@ -53,10 +53,10 @@ func (m *MgrCli) Ping() error {
 }
 
 func (m *MgrCli) SendInit(uid string, token string) error {
-	resp, err := m.Mux.Send(&rpc.Packet{
-		Meta: rpc.NewMeta(mgr.RouterInit),
-		Data: rpc.NewData(&mgr.InitParams{uid}),
-	})
+	resp, err := m.Mux.Send(rpc.NewReqPacket(
+		mgr.RouterInit,
+		&mgr.InitParams{uid},
+	))
 	if err != nil {
 		Exit(err.Error())
 	}

@@ -29,12 +29,7 @@ func (w *responseWriter) Responsef(fmt_ string, obj ...interface{}) error {
 }
 
 func (w *responseWriter) Response(data interface{}) error {
-	return w.s.Send(&rpc.Packet{
-		Meta: &rpc.Meta{
-			Seq: w.op.Meta.Seq,
-		},
-		Data: rpc.NewData(data),
-	})
+	return w.s.Send(rpc.NewRespPacket(w.op.Meta.Seq, data))
 }
 
 func (w *responseWriter) error(str string) error {

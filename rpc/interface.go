@@ -58,7 +58,7 @@ func (b *Buffer) All() []byte {
 
 type Encoding interface {
 	Encode(w BufferWriter, v interface{}) error
-	Decode(r BufferReader, v interface{}) error
+	Decode(r *bytes.Reader, v interface{}) error
 }
 
 type BufferReader interface {

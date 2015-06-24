@@ -11,9 +11,13 @@ import (
 	"gopkg.in/logex.v1"
 )
 
+const (
+	version     = 1
+	MaxBodySize = 10 << 10
+)
+
 var (
-	version = 1
-	seq     uint64
+	ErrBodyTooLarge = logex.Define("body too large")
 )
 
 type ProtocolV1 struct {
@@ -34,6 +38,9 @@ func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *rpc.Packe
 	if err := binary.Read(p1.r, binary.BigEndian, &length); err != nil {
 		return logex.Trace(err)
 	}
+	if length > MaxBodySize {
+		return logex.Trace(ErrBodyTooLarge)
+	}
 	p1.r.N += int64(length)
 
 	n, err := buf.ReadFrom(p1.r)
@@ -44,7 +51,7 @@ func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *rpc.Packe
 		return logex.Trace(err)
 	}
 
-	br := rpc.NewBuffer(buf)
+	br := bytes.NewReader(buf.Bytes()[:length])
 	if err := metaEnc.Decode(br, &p.Meta); err != nil {
 		return logex.Trace(err, length, buf.Bytes())
 	}

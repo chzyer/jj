@@ -40,9 +40,10 @@ type ClientMux struct {
 	stopChan    chan struct{}
 	global      []*clientWriteContext
 	globalGuard sync.Mutex
+	handler     rpc.Handler
 }
 
-func NewClientMux() *ClientMux {
+func NewClientMux(h rpc.Handler) *ClientMux {
 	cm := &ClientMux{
 		Ctx: &ClientCtx{
 			MetaEnc: rpcenc.NewJSONEncoding(),
@@ -51,6 +52,7 @@ func NewClientMux() *ClientMux {
 		stopChan:  make(chan struct{}),
 		respChan:  make(chan *rpc.Packet, 10),
 		writeChan: make(chan *rpc.WriteItem, 10),
+		handler:   h,
 	}
 	go cm.respLoop()
 	return cm
@@ -134,7 +136,7 @@ func (c *ClientMux) Write(b []byte) (n int, err error) {
 
 func (c *ClientMux) Call(method string, data, result interface{}) *rpc.Error {
 	resp, err := c.Send(&rpc.Packet{
-		Meta: rpc.NewMeta(method),
+		Meta: rpc.NewReqMeta(method),
 		Data: rpc.NewData(data),
 	})
 	if err != nil {

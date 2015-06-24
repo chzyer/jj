@@ -20,7 +20,7 @@ func TestMux(t *testing.T) {
 		})
 	}()
 	time.Sleep(time.Millisecond)
-	clientMux := NewClientMux()
+	clientMux := NewClientMux(nil)
 	tcpClient := rpclink.NewTcpLink(clientMux)
 	if err := rpcapi.Dial(":12346", tcpClient); err != nil {
 		t.Fatal(err)

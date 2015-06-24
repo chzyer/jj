@@ -16,11 +16,15 @@ func NewJSONEncoding() *JSONEncoding {
 	return &JSONEncoding{}
 }
 
-func (mp *JSONEncoding) Decode(r rpc.BufferReader, v interface{}) error {
+func (mp *JSONEncoding) Decode(r *bytes.Reader, v interface{}) error {
 	decoder := json.NewDecoder(r)
 	err := decoder.Decode(v)
 	br := decoder.Buffered().(*bytes.Reader)
-	ch, err := br.ReadByte()
+	if br.Len() > 0 {
+		r.Seek(int64(-br.Len()), 1)
+	}
+
+	ch, err := r.ReadByte()
 	if err != nil {
 		if logex.Equal(err, io.EOF) {
 			return nil
@@ -28,10 +32,7 @@ func (mp *JSONEncoding) Decode(r rpc.BufferReader, v interface{}) error {
 		return logex.Trace(err)
 	}
 	if ch != byte(10) {
-		br.UnreadByte()
-	}
-	if br.Len() > 0 {
-		r.Prepand(br)
+		r.UnreadByte()
 	}
 	return err
 }

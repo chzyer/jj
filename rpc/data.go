@@ -13,6 +13,9 @@ type Data struct {
 }
 
 func NewData(d interface{}) *Data {
+	if d == nil {
+		return nil
+	}
 	return &Data{
 		underlay: d,
 	}
@@ -32,7 +35,7 @@ func (d *Data) Write(buf BufferWriter, enc Encoding) error {
 }
 
 func (d *Data) Decode(enc Encoding, v interface{}) error {
-	buf := NewBuffer(bytes.NewBuffer(d.buf))
+	buf := bytes.NewReader(d.buf)
 	err := enc.Decode(buf, v)
 	if err != nil {
 		return err

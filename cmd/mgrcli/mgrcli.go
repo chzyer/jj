@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
@@ -31,7 +32,7 @@ var mux *rpcmux.ClientMux
 var jsonEnc = rpcenc.NewJSONEncoding()
 
 func getBody(data string) (obj interface{}) {
-	buf := rpc.NewBufferString(data)
+	buf := bytes.NewReader([]byte(data))
 	if err := jsonEnc.Decode(buf, &obj); err != nil {
 		logex.Error(err)
 	}
@@ -69,7 +70,7 @@ func process(cmd string) error {
 	}
 
 	packet := &rpc.Packet{
-		Meta: rpc.NewMeta(path),
+		Meta: rpc.NewReqMeta(path),
 	}
 	if body != nil {
 		packet.Data = rpc.NewData(body)
@@ -109,7 +110,7 @@ var history = "/tmp/mgrcli.readline"
 
 func main() {
 	c := NewConfig()
-	mux = rpcmux.NewClientMux()
+	mux = rpcmux.NewClientMux(nil)
 	tcpLink := rpclink.NewTcpLink(mux)
 	if err := rpcapi.Dial(c.MgrHost, tcpLink); err != nil {
 		logex.Fatal(err)
