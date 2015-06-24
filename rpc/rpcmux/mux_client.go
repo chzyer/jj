@@ -133,6 +133,23 @@ func (c *ClientMux) Write(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
+func (c *ClientMux) Call(method string, data, result interface{}) *rpc.Error {
+	resp, err := c.Send(&rpcprot.Packet{
+		Meta: rpcprot.NewMeta(method),
+		Data: rpcprot.NewData(data),
+	})
+	if err != nil {
+		return rpc.NewError(err, false)
+	}
+	if resp.Meta.Error != "" {
+		return rpc.NewError(err, true)
+	}
+	if err := resp.Data.Decode(c.Ctx.BodyEnc, result); err != nil {
+		return rpc.NewError(err, true)
+	}
+	return nil
+}
+
 func (c *ClientMux) Send(w *rpcprot.Packet) (p *rpcprot.Packet, err error) {
 	item := &clientWriteContext{
 		packet: w,

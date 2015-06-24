@@ -43,17 +43,17 @@ func NewUserModel(mdb *Mdb) *UserModel {
 	return &UserModel{NewBaseModel(mdb, User{})}
 }
 
-func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
+func (um *UserModel) Register(email, secret string) (*User, error) {
 	if !RegexpUserEmail.MatchString(email) {
-		return "", ErrUserEmailInvalid.Format(email).SetCode(400)
+		return nil, ErrUserEmailInvalid.Format(email).SetCode(400)
 	}
 	if secret == "" {
-		return "", logex.TraceError(ErrUserPswdEmpty).SetCode(400)
+		return nil, logex.TraceError(ErrUserPswdEmpty).SetCode(400)
 	}
 	if taken, err := um.Find(email); err != nil {
-		return "", logex.Trace(err)
+		return nil, logex.Trace(err)
 	} else if taken {
-		return "", ErrUserEmailAlreadyTaken.Format(email).SetCode(400)
+		return nil, ErrUserEmailAlreadyTaken.Format(email).SetCode(400)
 	}
 	u := &User{
 		Id:     bson.NewObjectId(),
@@ -64,9 +64,9 @@ func (um *UserModel) Register(email, secret string) (bson.ObjectId, error) {
 	}
 
 	if err := logex.Trace(um.Insert(u)); err != nil {
-		return "", err
+		return nil, err
 	}
-	return u.Id, nil
+	return u, nil
 }
 
 func (um *UserModel) CheckToken(uid, token string) (bool, error) {

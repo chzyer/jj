@@ -6,10 +6,16 @@ import (
 	"github.com/jj-io/jj/rpc"
 )
 
+var (
+	RouterDebugPing  = "debug.ping"
+	RouterDebugSleep = "debug.sleep"
+	RouterHelp       = "help"
+)
+
 func InitDebugHandler(mux *ServeMux) {
-	mux.HandleFunc("debug.ping", Ping)
-	mux.HandleFunc("debug.sleep", Sleep)
-	mux.HandleFunc("help", Help)
+	mux.HandleFunc(RouterDebugPing, Ping)
+	mux.HandleFunc(RouterDebugSleep, Sleep)
+	mux.HandleFunc(RouterHelp, Help)
 }
 
 func Help(w rpc.ResponseWriter, req *Request) {

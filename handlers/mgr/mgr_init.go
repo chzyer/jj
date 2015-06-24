@@ -7,8 +7,12 @@ import (
 	"github.com/jj-io/jj/rpc/rpcmux"
 )
 
+var (
+	RouterInit = "init"
+)
+
 func Init(mux *rpcmux.ServeMux) {
-	mux.HandleFunc("init", InitHandler)
+	mux.HandleFunc(RouterInit, InitHandler)
 	InitUserHandler(mux)
 }
 
