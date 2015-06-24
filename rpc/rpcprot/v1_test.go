@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
 
 	"gopkg.in/logex.v1"
@@ -16,18 +17,18 @@ func TestV1(t *testing.T) {
 	prot := NewProtocolV1(buf, buf)
 	metaEnc := rpcenc.NewJSONEncoding()
 	bodyEnc := rpcenc.NewJSONEncoding()
-	p1 := &Packet{
-		Meta: &Meta{
+	p1 := &rpc.Packet{
+		Meta: &rpc.Meta{
 			Version: 4,
 			Seq:     3,
 		},
-		Data: NewData("hello"),
+		Data: rpc.NewData("hello"),
 	}
 	if err := prot.Write(metaEnc, bodyEnc, p1); err != nil {
 		t.Fatal(err)
 	}
 
-	var p Packet
+	var p rpc.Packet
 	if err := prot.Read(buf2, metaEnc, &p); err != nil {
 		logex.Error(err)
 		t.Fatal(err)
@@ -41,7 +42,7 @@ func TestV1(t *testing.T) {
 	if err := p.Data.Decode(bodyEnc, &pData); err != nil {
 		t.Fatal(err)
 	}
-	if pData != p1.Data.underlay.(string) {
+	if pData != "hello" {
 		t.Fatal("data not except")
 	}
 }

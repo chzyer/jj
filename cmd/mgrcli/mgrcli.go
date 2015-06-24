@@ -13,7 +13,6 @@ import (
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
-	"github.com/jj-io/jj/rpc/rpcprot"
 	"gopkg.in/logex.v1"
 )
 
@@ -69,11 +68,11 @@ func process(cmd string) error {
 		}
 	}
 
-	packet := &rpcprot.Packet{
-		Meta: rpcprot.NewMeta(path),
+	packet := &rpc.Packet{
+		Meta: rpc.NewMeta(path),
 	}
 	if body != nil {
-		packet.Data = rpcprot.NewData(body)
+		packet.Data = rpc.NewData(body)
 	}
 
 	resp, err := mux.Send(packet)

@@ -1,10 +1,10 @@
-package rpcprot
+package rpc
 
 import (
 	"bytes"
 	"fmt"
 
-	"github.com/jj-io/jj/rpc"
+	"gopkg.in/logex.v1"
 )
 
 type Data struct {
@@ -24,8 +24,15 @@ func NewRawData(buf []byte) *Data {
 	}
 }
 
-func (d *Data) Decode(enc rpc.Encoding, v interface{}) error {
-	buf := rpc.NewBuffer(bytes.NewBuffer(d.buf))
+func (d *Data) Write(buf BufferWriter, enc Encoding) error {
+	if err := enc.Encode(buf, d.underlay); err != nil {
+		return logex.Trace(err)
+	}
+	return nil
+}
+
+func (d *Data) Decode(enc Encoding, v interface{}) error {
+	buf := NewBuffer(bytes.NewBuffer(d.buf))
 	err := enc.Decode(buf, v)
 	if err != nil {
 		return err

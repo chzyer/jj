@@ -2,11 +2,11 @@ package main
 
 import (
 	"github.com/jj-io/jj/handlers/mgr"
+	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
-	"github.com/jj-io/jj/rpc/rpcprot"
 	"gopkg.in/logex.v1"
 )
 
@@ -53,9 +53,9 @@ func (m *MgrCli) Ping() error {
 }
 
 func (m *MgrCli) SendInit(uid string, token string) error {
-	resp, err := m.Mux.Send(&rpcprot.Packet{
-		Meta: rpcprot.NewMeta(mgr.RouterInit),
-		Data: rpcprot.NewData(&mgr.InitParams{uid}),
+	resp, err := m.Mux.Send(&rpc.Packet{
+		Meta: rpc.NewMeta(mgr.RouterInit),
+		Data: rpc.NewData(&mgr.InitParams{uid}),
 	})
 	if err != nil {
 		Exit(err.Error())

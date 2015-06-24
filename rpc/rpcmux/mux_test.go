@@ -7,7 +7,6 @@ import (
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpclink"
-	"github.com/jj-io/jj/rpc/rpcprot"
 
 	"gopkg.in/logex.v1"
 )
@@ -28,13 +27,13 @@ func TestMux(t *testing.T) {
 
 	done := make(chan struct{}, 1)
 	go func() {
-		_, err := clientMux.Send(&rpcprot.Packet{
-			Meta: &rpcprot.Meta{
+		_, err := clientMux.Send(&rpc.Packet{
+			Meta: &rpc.Meta{
 				Version: 1,
 				Seq:     1,
 				Path:    "debug.sleep",
 			},
-			Data: rpcprot.NewData("100ms"),
+			Data: rpc.NewData("100ms"),
 		})
 		if err != nil {
 			t.Fatal(err)
@@ -42,8 +41,8 @@ func TestMux(t *testing.T) {
 		}
 		done <- struct{}{}
 	}()
-	resp, err := clientMux.Send(&rpcprot.Packet{
-		Meta: &rpcprot.Meta{
+	resp, err := clientMux.Send(&rpc.Packet{
+		Meta: &rpc.Meta{
 			Version: 1,
 			Seq:     2,
 			Path:    "debug.ping",

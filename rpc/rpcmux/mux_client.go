@@ -22,8 +22,8 @@ var (
 var _ rpc.Mux = &ClientMux{}
 
 type clientWriteContext struct {
-	packet *rpcprot.Packet
-	resp   chan *rpcprot.Packet
+	packet *rpc.Packet
+	resp   chan *rpc.Packet
 	err    chan error
 }
 
@@ -35,7 +35,7 @@ type ClientCtx struct {
 type ClientMux struct {
 	prot        rpcprot.Protocol
 	Ctx         *ClientCtx
-	respChan    chan *rpcprot.Packet
+	respChan    chan *rpc.Packet
 	writeChan   chan *rpc.WriteItem
 	stopChan    chan struct{}
 	global      []*clientWriteContext
@@ -49,7 +49,7 @@ func NewClientMux() *ClientMux {
 			BodyEnc: rpcenc.NewJSONEncoding(),
 		},
 		stopChan:  make(chan struct{}),
-		respChan:  make(chan *rpcprot.Packet, 10),
+		respChan:  make(chan *rpc.Packet, 10),
 		writeChan: make(chan *rpc.WriteItem, 10),
 	}
 	go cm.respLoop()
@@ -69,7 +69,7 @@ func (c *ClientMux) OnClosed() {
 }
 
 func (c *ClientMux) Handle(buf *bytes.Buffer) error {
-	var data rpcprot.Packet
+	var data rpc.Packet
 	if err := c.prot.Read(buf, c.Ctx.MetaEnc, &data); err != nil {
 		return logex.Trace(err)
 	}
@@ -79,7 +79,7 @@ func (c *ClientMux) Handle(buf *bytes.Buffer) error {
 
 func (c *ClientMux) respLoop() {
 	var (
-		packet *rpcprot.Packet
+		packet *rpc.Packet
 		op     *clientWriteContext
 	)
 	for {
@@ -133,9 +133,9 @@ func (c *ClientMux) Write(b []byte) (n int, err error) {
 }
 
 func (c *ClientMux) Call(method string, data, result interface{}) *rpc.Error {
-	resp, err := c.Send(&rpcprot.Packet{
-		Meta: rpcprot.NewMeta(method),
-		Data: rpcprot.NewData(data),
+	resp, err := c.Send(&rpc.Packet{
+		Meta: rpc.NewMeta(method),
+		Data: rpc.NewData(data),
 	})
 	if err != nil {
 		return rpc.NewError(err, false)
@@ -149,10 +149,10 @@ func (c *ClientMux) Call(method string, data, result interface{}) *rpc.Error {
 	return nil
 }
 
-func (c *ClientMux) Send(w *rpcprot.Packet) (p *rpcprot.Packet, err error) {
+func (c *ClientMux) Send(w *rpc.Packet) (p *rpc.Packet, err error) {
 	item := &clientWriteContext{
 		packet: w,
-		resp:   make(chan *rpcprot.Packet),
+		resp:   make(chan *rpc.Packet),
 		err:    make(chan error),
 	}
 

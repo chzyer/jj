@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/jj-io/jj/rpc"
-	"github.com/jj-io/jj/rpc/rpcprot"
 	"gopkg.in/logex.v1"
 )
 
@@ -23,10 +22,10 @@ func NewContext(metaEnc, bodyEnc rpc.Encoding) *Context {
 
 type responseWriter struct {
 	s  *ServeMux
-	op *rpcprot.Packet
+	op *rpc.Packet
 }
 
-func NewResponseWriter(s *ServeMux, packet *rpcprot.Packet) *responseWriter {
+func NewResponseWriter(s *ServeMux, packet *rpc.Packet) *responseWriter {
 	r := &responseWriter{
 		s:  s,
 		op: packet,
@@ -47,17 +46,17 @@ func (w *responseWriter) Responsef(fmt_ string, obj ...interface{}) error {
 }
 
 func (w *responseWriter) Response(data interface{}) error {
-	return w.s.Send(&rpcprot.Packet{
-		Meta: &rpcprot.Meta{
+	return w.s.Send(&rpc.Packet{
+		Meta: &rpc.Meta{
 			Seq: w.op.Meta.Seq,
 		},
-		Data: rpcprot.NewData(data),
+		Data: rpc.NewData(data),
 	})
 }
 
 func (w *responseWriter) error(str string) error {
-	return w.s.Send(&rpcprot.Packet{
-		Meta: rpcprot.NewMetaError(w.op.Meta.Seq, str),
+	return w.s.Send(&rpc.Packet{
+		Meta: rpc.NewMetaError(w.op.Meta.Seq, str),
 	})
 }
 

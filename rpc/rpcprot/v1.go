@@ -3,10 +3,8 @@ package rpcprot
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"sync/atomic"
 
 	"github.com/jj-io/jj/rpc"
 
@@ -17,42 +15,6 @@ var (
 	version = 1
 	seq     uint64
 )
-
-type Packet struct {
-	Meta *Meta
-	Data *Data
-}
-
-func NewPacket(path string, data interface{}) *Packet {
-	return &Packet{
-		Meta: NewMeta(path),
-	}
-}
-
-func (p *Packet) String() string {
-	return fmt.Sprintf("meta:%+v data:%+v", p.Meta, p.Data)
-}
-
-type Meta struct {
-	Version int    `json:"version,omitempty"`
-	Seq     uint64 `json:"seq"`
-	Path    string `json:"path,omitempty"`
-	Error   string `json:"error,omitempty"`
-}
-
-func NewMeta(path string) *Meta {
-	return &Meta{
-		Path: path,
-		Seq:  atomic.AddUint64(&seq, 1),
-	}
-}
-
-func NewMetaError(seq uint64, err string) *Meta {
-	return &Meta{
-		Error: err,
-		Seq:   seq,
-	}
-}
 
 type ProtocolV1 struct {
 	r *io.LimitedReader
@@ -66,7 +28,7 @@ func NewProtocolV1(r io.Reader, w io.Writer) Protocol {
 	}
 }
 
-func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *Packet) error {
+func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *rpc.Packet) error {
 	p1.r.N += 4
 	var length int32
 	if err := binary.Read(p1.r, binary.BigEndian, &length); err != nil {
@@ -88,11 +50,11 @@ func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *Packet) e
 	}
 	data, _ := ioutil.ReadAll(br)
 
-	p.Data = NewRawData(data)
+	p.Data = rpc.NewRawData(data)
 	return nil
 }
 
-func (p1 *ProtocolV1) Write(metaEnc, bodyEnc rpc.Encoding, p *Packet) error {
+func (p1 *ProtocolV1) Write(metaEnc, bodyEnc rpc.Encoding, p *rpc.Packet) error {
 	underBuf := make([]byte, 4, 512)
 	buf := bytes.NewBuffer(underBuf)
 	if err := metaEnc.Encode(buf, p.Meta); err != nil {
@@ -100,7 +62,7 @@ func (p1 *ProtocolV1) Write(metaEnc, bodyEnc rpc.Encoding, p *Packet) error {
 	}
 
 	if p.Data != nil {
-		if err := bodyEnc.Encode(buf, p.Data.underlay); err != nil {
+		if err := p.Data.Write(buf, bodyEnc); err != nil {
 			return logex.Trace(err)
 		}
 	}

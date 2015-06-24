@@ -26,11 +26,11 @@ var (
 
 type Request struct {
 	Ctx  *Context
-	Data *rpcprot.Data
-	Meta *rpcprot.Meta
+	Data *rpc.Data
+	Meta *rpc.Meta
 }
 
-func NewRequest(p *rpcprot.Packet, ctx *Context) *Request {
+func NewRequest(p *rpc.Packet, ctx *Context) *Request {
 	return &Request{
 		Ctx:  ctx,
 		Meta: p.Meta,
@@ -50,7 +50,7 @@ type ServeMux struct {
 	ctx         *Context
 	useEncoding bool
 	state       state
-	workChan    chan *rpcprot.Packet
+	workChan    chan *rpc.Packet
 	workGroup   sync.WaitGroup
 	stopChan    chan struct{}
 	writeChan   chan *rpc.WriteItem
@@ -62,7 +62,7 @@ func NewServeMux() *ServeMux {
 	sm := &ServeMux{
 		ctx:       ctx,
 		stopChan:  make(chan struct{}),
-		workChan:  make(chan *rpcprot.Packet, 10),
+		workChan:  make(chan *rpc.Packet, 10),
 		writeChan: make(chan *rpc.WriteItem),
 	}
 	go sm.handleLoop()
@@ -85,7 +85,7 @@ func (s *ServeMux) Init(r io.Reader) {
 	s.prot = rpcprot.NewProtocolV1(r, s)
 }
 
-func (s *ServeMux) Send(p *rpcprot.Packet) error {
+func (s *ServeMux) Send(p *rpc.Packet) error {
 	err := s.prot.Write(s.ctx.MetaEnc, s.ctx.BodyEnc, p)
 	if err != nil {
 		return logex.Trace(err)
@@ -94,7 +94,7 @@ func (s *ServeMux) Send(p *rpcprot.Packet) error {
 }
 
 func (s *ServeMux) Handle(buf *bytes.Buffer) error {
-	var p rpcprot.Packet
+	var p rpc.Packet
 	if err := s.prot.Read(buf, s.ctx.MetaEnc, &p); err != nil {
 		return logex.Trace(err)
 	}
@@ -107,7 +107,7 @@ func (s *ServeMux) Close() {
 	s.workGroup.Wait()
 }
 
-func (s *ServeMux) handlerWrap(h HandlerFunc, p *rpcprot.Packet, ctx *Context) {
+func (s *ServeMux) handlerWrap(h HandlerFunc, p *rpc.Packet, ctx *Context) {
 	now := time.Now()
 	h(NewResponseWriter(s, p), NewRequest(p, ctx))
 	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
@@ -116,7 +116,7 @@ func (s *ServeMux) handlerWrap(h HandlerFunc, p *rpcprot.Packet, ctx *Context) {
 func (s *ServeMux) handleLoop() {
 	s.workGroup.Add(1)
 	defer s.workGroup.Done()
-	var op *rpcprot.Packet
+	var op *rpc.Packet
 
 	for {
 		select {
