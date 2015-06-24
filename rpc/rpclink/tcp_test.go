@@ -44,6 +44,10 @@ func (mm *MockMux) Handle(buf *bytes.Buffer) error {
 	return nil
 }
 
+func (mm *MockMux) WritePacket(p *rpc.Packet) error {
+	return nil
+}
+
 func (mm *MockMux) WriteChan() <-chan *rpc.WriteItem {
 	return mm.ch
 }

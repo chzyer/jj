@@ -20,7 +20,7 @@ func NewMgrCli(mgrAddr []string) (*MgrCli, error) {
 	cli := &MgrCli{
 		Addr: mgrAddr,
 	}
-	cli.Mux = rpcmux.NewClientMux(nil)
+	cli.Mux = rpcmux.NewClientMux(nil, nil)
 	cli.Link = rpclink.NewTcpLink(cli.Mux)
 	if err := cli.connect(); err != nil {
 		return nil, err

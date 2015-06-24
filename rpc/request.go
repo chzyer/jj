@@ -7,8 +7,9 @@ type Request struct {
 	Meta *Meta
 }
 
-func NewRequest(p *Packet, ctx *EncContext) *Request {
+func NewRequest(p *Packet, ctx *EncContext, gtx Context) *Request {
 	return &Request{
+		Gtx:  gtx,
 		Ctx:  ctx,
 		Meta: p.Meta,
 		Data: p.Data,

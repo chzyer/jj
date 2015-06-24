@@ -73,7 +73,7 @@ func (s *ServeMux) Init(r io.Reader) {
 	}
 }
 
-func (s *ServeMux) Send(p *rpc.Packet) error {
+func (s *ServeMux) WritePacket(p *rpc.Packet) error {
 	err := s.prot.Write(s.ctx.MetaEnc, s.ctx.BodyEnc, p)
 	if err != nil {
 		return logex.Trace(err)
@@ -95,9 +95,9 @@ func (s *ServeMux) Close() {
 	s.workGroup.Wait()
 }
 
-func (s *ServeMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet, ctx *rpc.EncContext) {
+func (s *ServeMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet) {
 	now := time.Now()
-	h(NewResponseWriter(s, p), rpc.NewRequest(p, ctx))
+	h(NewResponseWriter(s.handler, s, p), rpc.NewRequest(p, s.ctx, s.gtx))
 	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
 }
 
@@ -116,7 +116,7 @@ func (s *ServeMux) handleLoop() {
 		logex.Info("comming:", op)
 
 		handler := s.handler.GetHandler(op.Meta.Path)
-		go s.handlerWrap(handler, op, s.ctx)
+		go s.handlerWrap(handler, op)
 	}
 }
 

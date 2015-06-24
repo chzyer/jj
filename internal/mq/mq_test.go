@@ -13,7 +13,7 @@ func TestMq(t *testing.T) {
 	mq.Publish("to:me", []byte("suck"))
 	for i := 0; i < 2; i++ {
 		select {
-		case msg := <-client.respChan:
+		case msg := <-client.RespChan:
 			if string(msg.Data) != "suck" {
 				t.Log(msg)
 				t.Error("sub not except")

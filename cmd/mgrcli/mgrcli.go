@@ -110,7 +110,7 @@ var history = "/tmp/mgrcli.readline"
 
 func main() {
 	c := NewConfig()
-	mux = rpcmux.NewClientMux(nil)
+	mux = rpcmux.NewClientMux(nil, nil)
 	tcpLink := rpclink.NewTcpLink(mux)
 	if err := rpcapi.Dial(c.MgrHost, tcpLink); err != nil {
 		logex.Fatal(err)

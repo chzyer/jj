@@ -32,7 +32,7 @@ func NewTopicChannel(req *rpc.Request) (*TopicChannel, error) {
 
 type PublishParams struct {
 	Topic string `json:"topic"`
-	Msg   string `json:"msg"`
+	Data  string `json:"data"`
 }
 
 func UnsubscribeHandler(w rpc.ResponseWriter, req *rpc.Request) {
@@ -72,12 +72,12 @@ func PublishHandler(w rpc.ResponseWriter, req *rpc.Request) {
 		w.Error(ErrTopicEmpty)
 		return
 	}
-	if params.Msg == "" {
+	if params.Data == "" {
 		w.Error(ErrMsgEmpty)
 		return
 	}
 
-	getCtx(req).Publish(params.Topic, []byte(params.Msg))
+	getCtx(req).Publish(params.Topic, []byte(params.Data))
 	w.Response("success")
 	return
 }

@@ -22,19 +22,16 @@ var (
 var _ rpc.Mux = &ClientMux{}
 
 type clientWriteContext struct {
-	packet *rpc.Packet
-	resp   chan *rpc.Packet
-	err    chan error
-}
-
-type ClientCtx struct {
-	MetaEnc rpc.Encoding
-	BodyEnc rpc.Encoding
+	packet   *rpc.Packet
+	callback func(*rpc.Packet)
+	resp     chan *rpc.Packet
 }
 
 type ClientMux struct {
 	prot        rpc.Protocol
-	Ctx         *ClientCtx
+	gtx         rpc.Context
+	ctxFunc     rpc.GenContext
+	Ctx         *rpc.EncContext
 	respChan    chan *rpc.Packet
 	writeChan   chan *rpc.WriteItem
 	stopChan    chan struct{}
@@ -43,12 +40,13 @@ type ClientMux struct {
 	handler     rpc.Handler
 }
 
-func NewClientMux(h rpc.Handler) *ClientMux {
+func NewClientMux(h rpc.Handler, ctxFunc rpc.GenContext) *ClientMux {
 	cm := &ClientMux{
-		Ctx: &ClientCtx{
+		Ctx: &rpc.EncContext{
 			MetaEnc: rpcenc.NewJSONEncoding(),
 			BodyEnc: rpcenc.NewJSONEncoding(),
 		},
+		ctxFunc:   ctxFunc,
 		stopChan:  make(chan struct{}),
 		respChan:  make(chan *rpc.Packet, 10),
 		writeChan: make(chan *rpc.WriteItem, 10),
@@ -60,6 +58,9 @@ func NewClientMux(h rpc.Handler) *ClientMux {
 
 func (c *ClientMux) Init(r io.Reader) {
 	c.prot = rpcprot.NewProtocolV1(r, c)
+	if c.ctxFunc != nil {
+		c.gtx = c.ctxFunc()
+	}
 }
 
 func (s *ClientMux) GetStopChan() <-chan struct{} {
@@ -93,6 +94,13 @@ func (c *ClientMux) respLoop() {
 			return
 		}
 
+		if packet.Meta.Type == rpc.MetaReq {
+
+			h := c.handler.GetHandler(packet.Meta.Path)
+			c.handlerWrap(h, packet)
+			continue
+		}
+
 		c.globalGuard.Lock()
 		for i := 0; i < len(c.global); i++ {
 			if c.global[i].packet.Meta.Seq == packet.Meta.Seq {
@@ -113,7 +121,14 @@ func (c *ClientMux) respLoop() {
 			continue
 		}
 
-		op.resp <- packet
+		if op.callback != nil {
+			op.callback(packet)
+		} else if op.resp != nil {
+			op.resp <- packet
+		} else {
+			logex.Error("unknown action for writeItem", op)
+		}
+
 	}
 }
 
@@ -135,10 +150,7 @@ func (c *ClientMux) Write(b []byte) (n int, err error) {
 }
 
 func (c *ClientMux) Call(method string, data, result interface{}) *rpc.Error {
-	resp, err := c.Send(&rpc.Packet{
-		Meta: rpc.NewReqMeta(method),
-		Data: rpc.NewData(data),
-	})
+	resp, err := c.Send(rpc.NewReqPacket(method, data))
 	if err != nil {
 		return rpc.NewError(err, false)
 	}
@@ -151,11 +163,34 @@ func (c *ClientMux) Call(method string, data, result interface{}) *rpc.Error {
 	return nil
 }
 
+func (c *ClientMux) SendAsync(w *rpc.Packet, cb func(*rpc.Packet)) error {
+	item := &clientWriteContext{
+		packet:   w,
+		callback: cb,
+	}
+	c.globalGuard.Lock()
+	c.global = append(c.global, item)
+	c.globalGuard.Unlock()
+
+	err := c.prot.Write(c.Ctx.MetaEnc, c.Ctx.BodyEnc, w)
+	if err != nil {
+		return logex.Trace(err)
+	}
+	return nil
+}
+
+func (c *ClientMux) WritePacket(p *rpc.Packet) error {
+	err := c.prot.Write(c.Ctx.MetaEnc, c.Ctx.BodyEnc, p)
+	if err != nil {
+		return logex.Trace(err)
+	}
+	return nil
+}
+
 func (c *ClientMux) Send(w *rpc.Packet) (p *rpc.Packet, err error) {
 	item := &clientWriteContext{
 		packet: w,
 		resp:   make(chan *rpc.Packet),
-		err:    make(chan error),
 	}
 
 	c.globalGuard.Lock()
@@ -169,12 +204,16 @@ func (c *ClientMux) Send(w *rpc.Packet) (p *rpc.Packet, err error) {
 
 	select {
 	case p = <-item.resp:
-	case err = <-item.err:
-		err = logex.Trace(err)
 	case <-time.After(10 * time.Second):
 		err = logex.Trace(ErrTimeout)
 	case <-c.stopChan:
 		err = logex.Trace(net.ErrWriteToConnected)
 	}
 	return
+}
+
+func (c *ClientMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet) {
+	now := time.Now()
+	h(NewResponseWriter(c.handler, c, p), rpc.NewRequest(p, c.Ctx, c.gtx))
+	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
 }

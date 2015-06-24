@@ -24,6 +24,7 @@ type Mux interface {
 	Init(io.Reader)
 	Handle(*bytes.Buffer) error
 	WriteChan() (ch <-chan *WriteItem)
+	WritePacket(p *Packet) error
 	OnClosed()
 }
 

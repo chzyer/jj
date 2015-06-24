@@ -58,6 +58,10 @@ type Msg struct {
 	Data    []byte
 }
 
+func (m *Msg) Channel() string {
+	return m.channel
+}
+
 func (m Msg) Clone(ch string) *Msg {
 	m.channel = ch
 	return &m
@@ -66,13 +70,15 @@ func (m Msg) Clone(ch string) *Msg {
 type MqClient struct {
 	uuid     int
 	mq       *Mq
-	respChan chan *Msg
+	RespChan chan *Msg
+	StopChan chan struct{}
 }
 
 func NewMqClient(mq *Mq) *MqClient {
 	return &MqClient{
 		mq:       mq,
-		respChan: make(chan *Msg),
+		RespChan: make(chan *Msg),
+		StopChan: make(chan struct{}),
 	}
 }
 
@@ -97,6 +103,10 @@ func (c *MqClient) Unsubscribe(topic, channel string) error {
 func (c *MqClient) ToSelectCase() *reflect.SelectCase {
 	return &reflect.SelectCase{
 		Dir:  reflect.SelectSend,
-		Chan: reflect.ValueOf(c.respChan),
+		Chan: reflect.ValueOf(c.RespChan),
 	}
+}
+
+func (c *MqClient) Stop() {
+	close(c.StopChan)
 }

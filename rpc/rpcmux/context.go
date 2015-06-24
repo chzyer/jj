@@ -8,20 +8,22 @@ import (
 )
 
 type responseWriter struct {
-	s  *ServeMux
-	op *rpc.Packet
+	handler rpc.Handler
+	mux     rpc.Mux
+	op      *rpc.Packet
 }
 
-func NewResponseWriter(s *ServeMux, packet *rpc.Packet) *responseWriter {
+func NewResponseWriter(h rpc.Handler, mux rpc.Mux, packet *rpc.Packet) *responseWriter {
 	r := &responseWriter{
-		s:  s,
-		op: packet,
+		handler: h,
+		mux:     mux,
+		op:      packet,
 	}
 	return r
 }
 
 func (w *responseWriter) routerList() []string {
-	return w.s.handler.ListPath()
+	return w.handler.ListPath()
 }
 
 func (w *responseWriter) Responsef(fmt_ string, obj ...interface{}) error {
@@ -29,11 +31,11 @@ func (w *responseWriter) Responsef(fmt_ string, obj ...interface{}) error {
 }
 
 func (w *responseWriter) Response(data interface{}) error {
-	return w.s.Send(rpc.NewRespPacket(w.op.Meta.Seq, data))
+	return w.mux.WritePacket(rpc.NewRespPacket(w.op.Meta.Seq, data))
 }
 
 func (w *responseWriter) error(str string) error {
-	return w.s.Send(&rpc.Packet{
+	return w.mux.WritePacket(&rpc.Packet{
 		Meta: rpc.NewMetaError(w.op.Meta.Seq, str),
 	})
 }

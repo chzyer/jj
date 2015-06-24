@@ -20,6 +20,10 @@ var (
 	mqHandler = rpcmux.NewPathHandler()
 )
 
+func init() {
+	mq.Init(mqHandler)
+}
+
 type Config struct {
 	Listen       string        `flag:"def=:8684;usage=listen port"`
 	ReadTimeout  time.Duration `flag:"def=10s;usage=read timeout"`
@@ -53,7 +57,10 @@ func (a *MqService) Run() error {
 	logex.Infof("[mq] listen on %v", a.Listen)
 	mq.InitMq()
 	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
-		mux := rpcmux.NewServeMux(mqHandler, mq.NewContext)
+		var mux *rpcmux.ClientMux
+		mux = rpcmux.NewClientMux(mqHandler, func() rpc.Context {
+			return mq.NewContext(mux)
+		})
 		return rpclink.NewTcpLink(mux)
 	})
 }

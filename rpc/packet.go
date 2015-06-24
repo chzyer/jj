@@ -63,6 +63,7 @@ func NewRespMeta(seq uint64) *Meta {
 func NewMetaError(seq uint64, err string) *Meta {
 	return &Meta{
 		Error: err,
+		Type:  MetaResp,
 		Seq:   seq,
 	}
 }
