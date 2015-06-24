@@ -117,7 +117,7 @@ func run() bool {
 
 	var cmd string
 	for err == nil {
-		cmd, err = readline.String(email + ": ")
+		cmd, err = readline.String(email + "> ")
 		if err != nil {
 			continue
 		}
@@ -131,7 +131,7 @@ func main() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGHUP)
 		<-c
-		Exit("bye")
+		Exit("\nbye")
 	}()
 	for run() {
 	}
