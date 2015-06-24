@@ -7,19 +7,6 @@ import (
 	"gopkg.in/logex.v1"
 )
 
-type Context struct {
-	MetaEnc rpc.Encoding
-	BodyEnc rpc.Encoding
-}
-
-func NewContext(metaEnc, bodyEnc rpc.Encoding) *Context {
-	ctx := &Context{
-		MetaEnc: metaEnc,
-		BodyEnc: bodyEnc,
-	}
-	return ctx
-}
-
 type responseWriter struct {
 	s  *ServeMux
 	op *rpc.Packet

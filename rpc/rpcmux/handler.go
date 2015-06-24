@@ -8,28 +8,26 @@ import (
 	"github.com/jj-io/jj/rpc"
 )
 
-type HandlerFunc func(rpc.ResponseWriter, *Request)
-
 type Handler struct {
-	handlerMap map[string]HandlerFunc
+	handlerMap map[string]rpc.HandlerFunc
 }
 
 func NewHandler() *Handler {
 	h := &Handler{
-		handlerMap: make(map[string]HandlerFunc),
+		handlerMap: make(map[string]rpc.HandlerFunc),
 	}
 	InitDebugHandler(h)
 	return h
 }
 
-func (h *Handler) HandleFunc(path string, handlerFunc HandlerFunc) {
+func (h *Handler) HandleFunc(path string, handlerFunc rpc.HandlerFunc) {
 	if h == nil {
 		return
 	}
 	h.handlerMap[path] = handlerFunc
 }
 
-func (h *Handler) GetHandler(path string) (handler HandlerFunc) {
+func (h *Handler) GetHandler(path string) (handler rpc.HandlerFunc) {
 	if h != nil {
 		handler = h.handlerMap[path]
 	}
@@ -40,6 +38,6 @@ func (h *Handler) GetHandler(path string) (handler HandlerFunc) {
 	return handler
 }
 
-func NotFoundHandler(w rpc.ResponseWriter, data *Request) {
+func NotFoundHandler(w rpc.ResponseWriter, data *rpc.Request) {
 	w.ErrorInfo(fmt.Sprintf("path '%v' not found", data.Meta.Path))
 }

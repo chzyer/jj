@@ -24,30 +24,12 @@ var (
 	ErrReceiveQuit = logex.Define("operation timeout, client quit")
 )
 
-type Request struct {
-	Ctx  *Context
-	Data *rpc.Data
-	Meta *rpc.Meta
-}
-
-func NewRequest(p *rpc.Packet, ctx *Context) *Request {
-	return &Request{
-		Ctx:  ctx,
-		Meta: p.Meta,
-		Data: p.Data,
-	}
-}
-
-func (r *Request) Params(v interface{}) error {
-	return r.Data.Decode(r.Ctx.BodyEnc, v)
-}
-
 var _ rpc.Mux = &ClientMux{}
 
 // single-conn request multiplexer
 type ServeMux struct {
 	prot        rpcprot.Protocol
-	ctx         *Context
+	ctx         *rpc.Context
 	useEncoding bool
 	state       state
 	workChan    chan *rpc.Packet
@@ -58,7 +40,7 @@ type ServeMux struct {
 }
 
 func NewServeMux() *ServeMux {
-	ctx := NewContext(rpcenc.NewJSONEncoding(), rpcenc.NewJSONEncoding())
+	ctx := rpc.NewContext(rpcenc.NewJSONEncoding(), rpcenc.NewJSONEncoding())
 	sm := &ServeMux{
 		ctx:       ctx,
 		stopChan:  make(chan struct{}),
@@ -107,9 +89,9 @@ func (s *ServeMux) Close() {
 	s.workGroup.Wait()
 }
 
-func (s *ServeMux) handlerWrap(h HandlerFunc, p *rpc.Packet, ctx *Context) {
+func (s *ServeMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet, ctx *rpc.Context) {
 	now := time.Now()
-	h(NewResponseWriter(s, p), NewRequest(p, ctx))
+	h(NewResponseWriter(s, p), rpc.NewRequest(p, ctx))
 	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
 }
 

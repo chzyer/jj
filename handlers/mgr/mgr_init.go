@@ -20,7 +20,7 @@ type InitParams struct {
 	Uid string `json:"uid"`
 }
 
-func InitHandler(w rpc.ResponseWriter, req *rpcmux.Request) {
+func InitHandler(w rpc.ResponseWriter, req *rpc.Request) {
 	var params InitParams
 	if err := req.Params(&params); err != nil {
 		w.Error(err)

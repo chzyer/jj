@@ -7,6 +7,8 @@ import (
 	"net"
 )
 
+type HandlerFunc func(ResponseWriter, *Request)
+
 type WriteItem struct {
 	Data []byte
 	Resp chan error
