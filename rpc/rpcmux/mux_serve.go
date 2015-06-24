@@ -2,14 +2,12 @@ package rpcmux
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"sync"
 	"time"
 
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
-	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcprot"
 
 	"gopkg.in/logex.v1"
@@ -44,9 +42,7 @@ func (r *Request) Params(v interface{}) error {
 	return r.Data.Decode(r.Ctx.BodyEnc, v)
 }
 
-type HandlerFunc func(rpc.ResponseWriter, *Request)
-
-var _ rpclink.Mux = &ClientMux{}
+var _ rpc.Mux = &ClientMux{}
 
 // single-conn request multiplexer
 type ServeMux struct {
@@ -57,22 +53,24 @@ type ServeMux struct {
 	workChan    chan *rpcprot.Packet
 	workGroup   sync.WaitGroup
 	stopChan    chan struct{}
-	writeChan   chan *rpclink.WriteItem
-	handlerMap  map[string]HandlerFunc
+	writeChan   chan *rpc.WriteItem
+	Handler     *Handler
 }
 
 func NewServeMux() *ServeMux {
 	ctx := NewContext(rpcenc.NewJSONEncoding(), rpcenc.NewJSONEncoding())
 	sm := &ServeMux{
-		ctx:        ctx,
-		stopChan:   make(chan struct{}),
-		workChan:   make(chan *rpcprot.Packet, 10),
-		handlerMap: make(map[string]HandlerFunc),
-		writeChan:  make(chan *rpclink.WriteItem),
+		ctx:       ctx,
+		stopChan:  make(chan struct{}),
+		workChan:  make(chan *rpcprot.Packet, 10),
+		writeChan: make(chan *rpc.WriteItem),
 	}
-	InitDebugHandler(sm)
 	go sm.handleLoop()
 	return sm
+}
+
+func (s *ServeMux) SetHandler(h *Handler) {
+	s.Handler = h
 }
 
 func (s *ServeMux) GetStopChan() <-chan struct{} {
@@ -85,10 +83,6 @@ func (s *ServeMux) OnClosed() {
 
 func (s *ServeMux) Init(r io.Reader) {
 	s.prot = rpcprot.NewProtocolV1(r, s)
-}
-
-func (s *ServeMux) HandleFunc(path string, handlerFunc HandlerFunc) {
-	s.handlerMap[path] = handlerFunc
 }
 
 func (s *ServeMux) Send(p *rpcprot.Packet) error {
@@ -133,22 +127,13 @@ func (s *ServeMux) handleLoop() {
 
 		logex.Info("comming:", op)
 
-		handler := s.handlerMap[op.Meta.Path]
-		if handler == nil {
-			handler = NotFoundHandler
-			logex.Warn("unknown path: ", op.Meta.Path)
-		}
-
+		handler := s.Handler.GetHandler(op.Meta.Path)
 		go s.handlerWrap(handler, op, s.ctx)
 	}
 }
 
-func NotFoundHandler(w rpc.ResponseWriter, data *Request) {
-	w.ErrorInfo(fmt.Sprintf("path '%v' not found", data.Meta.Path))
-}
-
 func (c *ServeMux) Write(b []byte) (n int, err error) {
-	wi := &rpclink.WriteItem{
+	wi := &rpc.WriteItem{
 		Data: b,
 		Resp: make(chan error),
 	}
@@ -160,6 +145,6 @@ func (c *ServeMux) Write(b []byte) (n int, err error) {
 	return len(b), nil
 }
 
-func (c *ServeMux) WriteChan() <-chan *rpclink.WriteItem {
+func (c *ServeMux) WriteChan() <-chan *rpc.WriteItem {
 	return c.writeChan
 }

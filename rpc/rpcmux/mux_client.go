@@ -8,7 +8,6 @@ import (
 
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
-	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcprot"
 
 	"net"
@@ -20,7 +19,7 @@ var (
 	ErrTimeout = logex.Define("timeout")
 )
 
-var _ rpclink.Mux = &ClientMux{}
+var _ rpc.Mux = &ClientMux{}
 
 type clientWriteContext struct {
 	packet *rpcprot.Packet
@@ -37,7 +36,7 @@ type ClientMux struct {
 	prot        rpcprot.Protocol
 	Ctx         *ClientCtx
 	respChan    chan *rpcprot.Packet
-	writeChan   chan *rpclink.WriteItem
+	writeChan   chan *rpc.WriteItem
 	stopChan    chan struct{}
 	global      []*clientWriteContext
 	globalGuard sync.Mutex
@@ -51,7 +50,7 @@ func NewClientMux() *ClientMux {
 		},
 		stopChan:  make(chan struct{}),
 		respChan:  make(chan *rpcprot.Packet, 10),
-		writeChan: make(chan *rpclink.WriteItem, 10),
+		writeChan: make(chan *rpc.WriteItem, 10),
 	}
 	go cm.respLoop()
 	return cm
@@ -108,7 +107,7 @@ func (c *ClientMux) respLoop() {
 
 		if op == nil {
 			// TODO: add stat
-			logex.Info("receive packet which not found sender:", packet)
+			logex.Info("receive packet which sender is not found:", packet)
 			continue
 		}
 
@@ -116,12 +115,12 @@ func (c *ClientMux) respLoop() {
 	}
 }
 
-func (c *ClientMux) WriteChan() <-chan *rpclink.WriteItem {
+func (c *ClientMux) WriteChan() <-chan *rpc.WriteItem {
 	return c.writeChan
 }
 
 func (c *ClientMux) Write(b []byte) (n int, err error) {
-	wi := &rpclink.WriteItem{
+	wi := &rpc.WriteItem{
 		Data: b,
 		Resp: make(chan error),
 	}

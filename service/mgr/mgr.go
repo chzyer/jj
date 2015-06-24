@@ -42,9 +42,12 @@ func (a *MgrService) Name() string { return Name }
 func (a *MgrService) Run() error {
 	logex.Infof("[mgr] listen on %v", a.Listen)
 	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
+		handler := rpcmux.NewHandler()
+		mgr.Init(handler)
 		mux := rpcmux.NewServeMux()
+		mux.Handler = handler
 		// fixme
-		mgr.Init(mux)
+
 		return rpclink.NewTcpLink(mux)
 	})
 }

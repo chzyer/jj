@@ -105,6 +105,7 @@ func run() bool {
 	}
 	call := NewCall(client)
 	email, uid, token, mgrAddr := loginAndGetInfo(call, conf)
+	_ = email
 	fmt.Println("welcome to jj-cli!")
 	mgrCli, err := NewMgrCli(mgrAddr)
 	if err != nil {
@@ -117,7 +118,7 @@ func run() bool {
 
 	var cmd string
 	for err == nil {
-		cmd, err = readline.String(email + "> ")
+		cmd, err = readline.String("home » ")
 		if err != nil {
 			continue
 		}

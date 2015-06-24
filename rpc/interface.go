@@ -7,6 +7,18 @@ import (
 	"net"
 )
 
+type WriteItem struct {
+	Data []byte
+	Resp chan error
+}
+
+type Mux interface {
+	Init(io.Reader)
+	Handle(*bytes.Buffer) error
+	WriteChan() (ch <-chan *WriteItem)
+	OnClosed()
+}
+
 type Error struct {
 	error
 	IsUserError bool

@@ -11,9 +11,9 @@ var (
 	RouterInit = "init"
 )
 
-func Init(mux *rpcmux.ServeMux) {
-	mux.HandleFunc(RouterInit, InitHandler)
-	InitUserHandler(mux)
+func Init(h *rpcmux.Handler) {
+	h.HandleFunc(RouterInit, InitHandler)
+	InitUserHandler(h)
 }
 
 type InitParams struct {

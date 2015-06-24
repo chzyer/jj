@@ -36,7 +36,7 @@ func NewResponseWriter(s *ServeMux, packet *rpcprot.Packet) *responseWriter {
 
 func (w *responseWriter) routerList() []string {
 	var s []string
-	for k := range w.s.handlerMap {
+	for k := range w.s.Handler.handlerMap {
 		s = append(s, k)
 	}
 	return s

@@ -2,6 +2,7 @@ package mq
 
 import (
 	"reflect"
+	"sync"
 	"sync/atomic"
 )
 
@@ -30,6 +31,10 @@ func NewTopic(name string) *Topic {
 
 func (t *Topic) AddSubscriber(channel string, s Subscriber) {
 	t.GetChan(channel).AddSubscriber(s)
+}
+
+func (t *Topic) RemoveSubscriber(channel string, s Subscriber) {
+	t.GetChan(channel).RemoveSubscriber(s)
 }
 
 func (t *Topic) writeBufferLoop() {
@@ -83,6 +88,7 @@ type Channel struct {
 	subscriber []Subscriber
 	selectCase []reflect.SelectCase
 	underlay   chan []byte
+	mutex      sync.Mutex
 }
 
 func NewChannel(topic, name string) *Channel {
@@ -109,16 +115,43 @@ func (ch *Channel) moveLoop() {
 			Data:    data,
 		})
 
+		ch.mutex.Lock()
+		sc := make([]reflect.SelectCase, len(ch.selectCase))
 		for i := 0; i < len(ch.selectCase); i++ {
-			ch.selectCase[i].Send = val
+			sc[i] = ch.selectCase[i]
+			sc[i].Send = val
 		}
-		reflect.Select(ch.selectCase)
+		ch.mutex.Unlock()
+		reflect.Select(sc)
+
 	}
 }
 
 func (ch *Channel) AddSubscriber(s Subscriber) {
+	ch.mutex.Lock()
 	ch.subscriber = append(ch.subscriber, s)
 	ch.selectCase = append(ch.selectCase, s.ToSelectCase())
+	ch.mutex.Unlock()
+}
+
+func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {
+	ch.mutex.Lock()
+	defer ch.mutex.Unlock()
+
+	idx = -1
+	for i := range ch.subscriber {
+		if ch.subscriber[i] == s {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return
+	}
+
+	ch.subscriber = append(ch.subscriber[:idx], ch.subscriber[idx+1:]...)
+	ch.selectCase = append(ch.selectCase[:idx], ch.selectCase[idx+1:]...)
+	return
 }
 
 func (ch *Channel) Write(data []byte) {

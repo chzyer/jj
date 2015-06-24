@@ -12,10 +12,10 @@ var (
 	RouterHelp       = "help"
 )
 
-func InitDebugHandler(mux *ServeMux) {
-	mux.HandleFunc(RouterDebugPing, Ping)
-	mux.HandleFunc(RouterDebugSleep, Sleep)
-	mux.HandleFunc(RouterHelp, Help)
+func InitDebugHandler(handler *Handler) {
+	handler.HandleFunc(RouterDebugPing, Ping)
+	handler.HandleFunc(RouterDebugSleep, Sleep)
+	handler.HandleFunc(RouterHelp, Help)
 }
 
 func Help(w rpc.ResponseWriter, req *Request) {

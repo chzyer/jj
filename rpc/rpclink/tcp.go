@@ -7,29 +7,19 @@ import (
 	"net"
 	"sync/atomic"
 
+	"github.com/jj-io/jj/rpc"
+
 	"gopkg.in/logex.v1"
 )
 
-type WriteItem struct {
-	Data []byte
-	Resp chan error
-}
-
-type Mux interface {
-	Init(io.Reader)
-	Handle(*bytes.Buffer) error
-	WriteChan() (ch <-chan *WriteItem)
-	OnClosed()
-}
-
 type TcpLink struct {
-	mux       Mux
+	mux       rpc.Mux
 	conn      *net.TCPConn
 	closeChan chan struct{}
 	closed    int32
 }
 
-func NewTcpLink(mux Mux) *TcpLink {
+func NewTcpLink(mux rpc.Mux) *TcpLink {
 	th := &TcpLink{
 		mux:       mux,
 		closeChan: make(chan struct{}, 1),
@@ -54,7 +44,7 @@ func (th *TcpLink) Handle() {
 
 func (th *TcpLink) HandleWrite() {
 	var (
-		item *WriteItem
+		item *rpc.WriteItem
 		err  error
 		n    int
 	)

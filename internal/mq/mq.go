@@ -41,6 +41,10 @@ func (m *Mq) Subscribe(client *MqClient, topic, channel string) {
 	return
 }
 
+func (m *Mq) Unsubscribe(client *MqClient, topic, channel string) {
+	m.GetTopic(topic).RemoveSubscriber(channel, client)
+}
+
 func (m *Mq) Publish(topic string, data []byte) {
 	m.pubChan <- &Msg{
 		Topic: topic,
@@ -78,6 +82,11 @@ func (c *MqClient) Name() string {
 
 func (c *MqClient) Subscribe(topic, channel string) error {
 	c.mq.Subscribe(c, topic, channel)
+	return nil
+}
+
+func (c *MqClient) Unsubscribe(topic, channel string) error {
+	c.mq.Unsubscribe(c, topic, channel)
 	return nil
 }
 

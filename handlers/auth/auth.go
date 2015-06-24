@@ -84,9 +84,11 @@ func Register(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	response(w, &RegisterResp{
-		Result: 200,
-		Uid:    u.Id.Hex(),
-		Token:  u.Token,
+		Result:     200,
+		Uid:        u.Id.Hex(),
+		Token:      u.Token,
+		MgrAddr:    NewMgrHost(req),
+		NotifyAddr: NewNotifyHost(req),
 	})
 }
 

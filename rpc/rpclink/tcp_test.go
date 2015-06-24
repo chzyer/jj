@@ -6,18 +6,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jj-io/jj/rpc"
+
 	"gopkg.in/logex.v1"
 )
 import "net"
 
 type MockMux struct {
 	r  io.Reader
-	ch chan *WriteItem
+	ch chan *rpc.WriteItem
 }
 
 func NewMockMux() *MockMux {
 	return &MockMux{
-		ch: make(chan *WriteItem),
+		ch: make(chan *rpc.WriteItem),
 	}
 }
 
@@ -36,13 +38,13 @@ func (mm *MockMux) Handle(buf *bytes.Buffer) error {
 		return logex.Trace(err)
 	}
 
-	mm.ch <- &WriteItem{
+	mm.ch <- &rpc.WriteItem{
 		Data: b[:n],
 	}
 	return nil
 }
 
-func (mm *MockMux) WriteChan() <-chan *WriteItem {
+func (mm *MockMux) WriteChan() <-chan *rpc.WriteItem {
 	return mm.ch
 }
 
