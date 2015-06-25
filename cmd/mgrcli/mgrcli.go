@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/bobappleyard/readline"
-	"github.com/chzyer/reflag"
+	"github.com/chzyer/flagx"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpcenc"
@@ -24,7 +24,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	var c Config
-	reflag.Parse(&c)
+	flagx.Parse(&c)
 	return &c
 }
 

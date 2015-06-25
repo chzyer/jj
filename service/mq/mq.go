@@ -5,7 +5,7 @@ import (
 
 	"gopkg.in/logex.v1"
 
-	"github.com/chzyer/reflag"
+	"github.com/chzyer/flagx"
 	"github.com/jj-io/jj/handlers/mq"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcapi"
@@ -36,7 +36,7 @@ type MqService struct {
 
 func NewMqService(name string, args []string) service.Service {
 	var c Config
-	reflag.ParseFlag(&c, &reflag.FlagConfig{
+	flagx.ParseFlag(&c, &flagx.FlagConfig{
 		Name: name,
 		Args: args,
 	})

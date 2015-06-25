@@ -11,7 +11,7 @@ import (
 	"github.com/jj-io/jj/rpc/rpcmux"
 	"github.com/jj-io/jj/service"
 
-	"github.com/chzyer/reflag"
+	"github.com/chzyer/flagx"
 	"gopkg.in/logex.v1"
 )
 
@@ -38,7 +38,7 @@ type NotifyService struct {
 
 func NewNotifyService(name string, args []string) service.Service {
 	var c Config
-	reflag.ParseFlag(&c, &reflag.FlagConfig{
+	flagx.ParseFlag(&c, &flagx.FlagConfig{
 		Name: name,
 		Args: args,
 	})

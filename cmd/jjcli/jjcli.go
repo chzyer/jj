@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/bobappleyard/readline"
-	"github.com/chzyer/reflag"
+	"github.com/chzyer/flagx"
 	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/logex.v1"
 )
@@ -27,7 +27,7 @@ type Config struct {
 
 func NewConfig() *Config {
 	var c Config
-	reflag.Parse(&c)
+	flagx.Parse(&c)
 	return &c
 }
 
