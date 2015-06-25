@@ -1,8 +1,11 @@
 package main
 
 import (
-	"time"
+	"fmt"
+	"os"
+	"strings"
 
+	"github.com/bobappleyard/readline"
 	"github.com/chzyer/reflag"
 	"github.com/jj-io/jj/handlers/mq"
 	"github.com/jj-io/jj/rpc"
@@ -23,6 +26,32 @@ func NewConfig() *Config {
 	return &c
 }
 
+func usage() {
+	println(`subscribe <topic> <channel>
+unsubscribe <topic> <channel>
+publish <topic> <message>`)
+}
+
+func subscribe(mux *rpcmux.ClientMux, topic, channel string) {
+	var subresp string
+	if err := mux.Call(mq.PathSubscribe, &mq.TopicChannel{
+		Topic:   topic,
+		Channel: channel,
+	}, &subresp); err != nil {
+		logex.Fatal(err)
+	}
+}
+
+func publish(mux *rpcmux.ClientMux, topic, msg string) {
+	var resp string
+	if err := mux.Call(mq.PathPublish, &mq.PublishParams{
+		Topic: topic,
+		Data:  msg,
+	}, &resp); err != nil {
+		logex.Fatal(err)
+	}
+}
+
 func main() {
 	c := NewConfig()
 	handler := rpcmux.NewPathHandler()
@@ -33,24 +62,35 @@ func main() {
 		logex.Fatal(err)
 	}
 
-	var subresp string
-	if err := mux.Call(mq.PathSubscribe, &mq.TopicChannel{
-		Topic:   "hello",
-		Channel: "ch1",
-	}, &subresp); err != nil {
-		logex.Fatal(err)
-	}
+	for {
+		cmd, err := readline.String("> ")
+		if err != nil {
+			println(err.Error())
+			os.Exit(1)
+		}
+		readline.AddHistory(cmd)
+		idx := strings.Index(cmd, " ")
+		if idx < 0 {
+			usage()
+			continue
+		}
+		action := cmd[:idx]
+		cmd = cmd[idx+1:]
 
-	var resp string
-	if err := mux.Call(mq.PathPublish, &mq.PublishParams{
-		Topic: "hello",
-		Data:  "msg here!",
-	}, &resp); err != nil {
-		logex.Fatal(err)
-	}
+		idx = strings.Index(cmd, " ")
+		topic := cmd[:idx]
+		cmd = cmd[idx+1:]
 
-	time.Sleep(time.Second)
-	println(resp, subresp)
+		switch action {
+		case "subscribe":
+			subscribe(mux, topic, cmd)
+		case "publish":
+			publish(mux, topic, cmd)
+		default:
+			usage()
+			continue
+		}
+	}
 }
 
 func OnReceiveMsg(w rpc.ResponseWriter, req *rpc.Request) {
@@ -59,5 +99,6 @@ func OnReceiveMsg(w rpc.ResponseWriter, req *rpc.Request) {
 		logex.Error(err)
 		return
 	}
-	println("comming:", msg.Topic, msg.Data)
+	fmt.Printf("\ntopic: %v; msg: %v \n", msg.Topic, msg.Data)
+	readline.RefreshLine()
 }

@@ -71,6 +71,7 @@ func (t *Topic) GetChan(name string) (ch *Channel) {
 	return
 }
 
+// fixme
 func (t *Topic) Publish(data []byte) {
 	if len(t.Chans) == 0 {
 		t.buffer <- data

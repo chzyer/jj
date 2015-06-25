@@ -61,6 +61,13 @@ func (a *MqService) Run() error {
 		mux = rpcmux.NewClientMux(mqHandler, func() rpc.Context {
 			return mq.NewContext(mux)
 		})
+		go func() {
+			<-mux.GetStopChan()
+			if gtx, ok := mux.Gtx.(*mq.Context); ok {
+				println("exit")
+				gtx.Stop()
+			}
+		}()
 		return rpclink.NewTcpLink(mux)
 	})
 }

@@ -90,7 +90,7 @@ func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {
 	}
 
 	ch.subscriber = append(ch.subscriber[:idx], ch.subscriber[idx+1:]...)
-	ch.selectCase = append(ch.selectCase[:idx], ch.selectCase[idx+1:]...)
+	ch.selectCase = append(ch.selectCase[:idx+1], ch.selectCase[idx+2:]...)
 	return
 }
 

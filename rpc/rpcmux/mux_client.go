@@ -29,7 +29,7 @@ type clientWriteContext struct {
 
 type ClientMux struct {
 	prot        rpc.Protocol
-	gtx         rpc.Context
+	Gtx         rpc.Context
 	ctxFunc     rpc.GenContext
 	Ctx         *rpc.EncContext
 	respChan    chan *rpc.Packet
@@ -59,7 +59,7 @@ func NewClientMux(h rpc.Handler, ctxFunc rpc.GenContext) *ClientMux {
 func (c *ClientMux) Init(r io.Reader) {
 	c.prot = rpcprot.NewProtocolV1(r, c)
 	if c.ctxFunc != nil {
-		c.gtx = c.ctxFunc()
+		c.Gtx = c.ctxFunc()
 	}
 }
 
@@ -214,6 +214,6 @@ func (c *ClientMux) Send(w *rpc.Packet) (p *rpc.Packet, err error) {
 
 func (c *ClientMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet) {
 	now := time.Now()
-	h(NewResponseWriter(c.handler, c, p), rpc.NewRequest(p, c.Ctx, c.gtx))
-	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
+	h(NewResponseWriter(c.handler, c, p), rpc.NewRequest(p, c.Ctx, c.Gtx))
+	logex.Debug("request time: ", p.Meta.Path, ",", time.Now().Sub(now))
 }
