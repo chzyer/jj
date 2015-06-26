@@ -6,23 +6,24 @@ import (
 )
 
 type Channel struct {
-	Name              string
-	Topic             string
-	subscriber        []Subscriber
-	selectCase        []*reflect.SelectCase
-	underlay          chan []byte
-	newSubscriberChan chan struct{}
-	mutex             sync.Mutex
+	Name       string
+	Topic      string
+	subscriber []Subscriber
+	selectCase []*reflect.SelectCase
+	underlay   chan []byte
+	newChan    chan struct{}
+	mutex      sync.Mutex
 }
 
 func NewChannel(topic, name string) *Channel {
 	ch := &Channel{
-		Name:              name,
-		underlay:          make(chan []byte, 10),
-		newSubscriberChan: make(chan struct{}),
+		Name:     name,
+		Topic:    topic,
+		underlay: make(chan []byte, 10),
+		newChan:  make(chan struct{}),
 	}
 	ch.selectCase = []*reflect.SelectCase{
-		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch.newSubscriberChan)},
+		{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch.newChan)},
 	}
 
 	go ch.dispatchLoop()
@@ -45,7 +46,6 @@ func (ch *Channel) dispatchLoop() {
 		})
 
 	reDispatch:
-
 		ch.mutex.Lock()
 		sc := make([]reflect.SelectCase, len(ch.selectCase))
 		for i := 0; i < len(ch.selectCase); i++ {
@@ -64,20 +64,21 @@ func (ch *Channel) dispatchLoop() {
 
 func (ch *Channel) AddSubscriber(s Subscriber) {
 	ch.mutex.Lock()
+	if idx := ch.suberIdx(s); idx >= 0 {
+		ch.mutex.Unlock()
+		return
+	}
 	ch.subscriber = append(ch.subscriber, s)
 	ch.selectCase = append(ch.selectCase, s.ToSelectCase())
 	ch.mutex.Unlock()
 
 	select {
-	case ch.newSubscriberChan <- struct{}{}:
+	case ch.newChan <- struct{}{}:
 	default:
 	}
 }
 
-func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {
-	ch.mutex.Lock()
-	defer ch.mutex.Unlock()
-
+func (ch *Channel) suberIdx(s Subscriber) (idx int) {
 	idx = -1
 	for i := range ch.subscriber {
 		if ch.subscriber[i] == s {
@@ -85,6 +86,14 @@ func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {
 			break
 		}
 	}
+	return
+}
+
+func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {
+	ch.mutex.Lock()
+	defer ch.mutex.Unlock()
+
+	idx = ch.suberIdx(s)
 	if idx < 0 {
 		return
 	}

@@ -1,9 +1,8 @@
 package mq
 
-import (
-	"reflect"
-	"sync/atomic"
-)
+import "reflect"
+
+import "sync"
 
 type Subscriber interface {
 	Name() string
@@ -11,19 +10,29 @@ type Subscriber interface {
 }
 
 type Topic struct {
-	Name       string
-	buffer     chan []byte
-	writeState int32
-	hasChan    chan struct{}
-	Chans      []*Channel
+	Name        string
+	buffer      chan []byte
+	hasChan     chan struct{}
+	Chans       []*Channel
+	ChanSelect  []reflect.SelectCase
+	EmptyChan   reflect.Value
+	defaultCase *reflect.SelectCase
+	guard       sync.RWMutex
 }
 
 func NewTopic(name string) *Topic {
+	var empty chan []byte
 	t := &Topic{
-		Name:    name,
-		hasChan: make(chan struct{}),
-		buffer:  make(chan []byte),
+		Name:      name,
+		hasChan:   make(chan struct{}),
+		buffer:    make(chan []byte, 10),
+		EmptyChan: reflect.ValueOf(empty),
 	}
+	t.defaultCase = &reflect.SelectCase{
+		Dir:  reflect.SelectRecv,
+		Chan: reflect.ValueOf(t.hasChan),
+	}
+
 	go t.writeBufferLoop()
 	return t
 }
@@ -40,16 +49,43 @@ func (t *Topic) writeBufferLoop() {
 	var (
 		data []byte
 	)
-	<-t.hasChan
+
 	for {
 		select {
 		case data = <-t.buffer:
-			t.Publish(data)
+			t.writeToChans(data)
 		}
 	}
 }
 
-func (t *Topic) ChanIdx(name string) int {
+func (t *Topic) writeToChans(data []byte) {
+reWrite:
+	vdata := reflect.ValueOf(data)
+	t.guard.RLock()
+	length := len(t.ChanSelect)
+	css := make([]reflect.SelectCase, length+1)
+	css[0] = *t.defaultCase
+	for idx, cs := range t.ChanSelect {
+		cs.Send = vdata
+		css[idx+1] = cs
+	}
+	t.guard.RUnlock()
+
+	hasDefault := true
+	for i := 0; i < length || length == 0; i++ {
+		chosen, _, _ := reflect.Select(css)
+		if chosen == 0 && hasDefault {
+			goto reWrite
+		}
+		css[chosen].Chan = t.EmptyChan
+		if hasDefault {
+			css = css[1:]
+			hasDefault = false
+		}
+	}
+}
+
+func (t *Topic) chanIdx(name string) int {
 	for i := 0; i < len(t.Chans); i++ {
 		if t.Chans[i].Name == name {
 			return i
@@ -59,25 +95,31 @@ func (t *Topic) ChanIdx(name string) int {
 }
 
 func (t *Topic) GetChan(name string) (ch *Channel) {
-	if idx := t.ChanIdx(name); idx < 0 {
-		ch = NewChannel(t.Name, name)
-		t.Chans = append(t.Chans, ch)
-		if atomic.CompareAndSwapInt32(&t.writeState, 0, 1) {
-			t.hasChan <- struct{}{}
-		}
-	} else {
+	t.guard.RLock()
+	idx := t.chanIdx(name)
+	if idx >= 0 {
 		ch = t.Chans[idx]
+		t.guard.RUnlock()
+		return ch
+	}
+	t.guard.RUnlock()
+
+	ch = NewChannel(t.Name, name)
+	t.guard.Lock()
+	t.Chans = append(t.Chans, ch)
+	t.ChanSelect = append(t.ChanSelect, reflect.SelectCase{
+		Dir:  reflect.SelectSend,
+		Chan: reflect.ValueOf(ch.underlay),
+	})
+	t.guard.Unlock()
+
+	select {
+	case t.hasChan <- struct{}{}:
+	default:
 	}
 	return
 }
 
-// fixme
 func (t *Topic) Publish(data []byte) {
-	if len(t.Chans) == 0 {
-		t.buffer <- data
-		return
-	}
-	for i := 0; i < len(t.Chans); i++ {
-		t.Chans[i].Write(data)
-	}
+	t.buffer <- data
 }
