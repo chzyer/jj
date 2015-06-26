@@ -6,14 +6,14 @@ import (
 )
 
 type Mq struct {
-	Topics  map[string]*Topic
+	topics  map[string]*Topic
 	pubChan chan *Msg
 	gruad   sync.Mutex
 }
 
 func NewMq() *Mq {
 	mq := &Mq{
-		Topics:  make(map[string]*Topic),
+		topics:  make(map[string]*Topic),
 		pubChan: make(chan *Msg, 10),
 	}
 	go mq.pubLoop()
@@ -31,14 +31,24 @@ func (m *Mq) pubLoop() {
 	}
 }
 
+func (m *Mq) Topics() (topics []string) {
+	m.gruad.Lock()
+	defer m.gruad.Unlock()
+	topics = make([]string, 0, len(m.topics))
+	for k := range m.topics {
+		topics = append(topics, k)
+	}
+	return
+}
+
 func (m *Mq) GetTopic(name string) *Topic {
 	m.gruad.Lock()
 	defer m.gruad.Unlock()
 
-	topic, ok := m.Topics[name]
+	topic, ok := m.topics[name]
 	if !ok {
 		topic = NewTopic(name)
-		m.Topics[name] = topic
+		m.topics[name] = topic
 	}
 	return topic
 }

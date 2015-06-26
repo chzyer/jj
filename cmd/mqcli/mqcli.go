@@ -32,6 +32,14 @@ unsubscribe <topic> <channel>
 publish <topic> <message>`)
 }
 
+func getTopics(mux *rpcmux.ClientMux) []string {
+	var subresp []string
+	if err := mux.Call(mq.PathTopics, nil, &subresp); err != nil {
+		logex.Fatal(err)
+	}
+	return subresp
+}
+
 func subscribe(mux *rpcmux.ClientMux, topic, channel string) {
 	var subresp string
 	if err := mux.Call(mq.PathSubscribe, &mq.TopicChannel{
@@ -69,6 +77,12 @@ func main() {
 			os.Exit(1)
 		}
 		readline.AddHistory(cmd)
+		switch cmd {
+		case "topics":
+			fmt.Println(getTopics(mux))
+			continue
+		}
+
 		idx := strings.Index(cmd, " ")
 		if idx < 0 {
 			usage()
@@ -99,6 +113,6 @@ func OnReceiveMsg(w rpc.ResponseWriter, req *rpc.Request) {
 		logex.Error(err)
 		return
 	}
-	fmt.Printf("\ntopic: %v; msg: %v \n", msg.Topic, msg.Data)
+	println(fmt.Sprintf("topic: %v; msg: %v \n", msg.Topic, msg.Data))
 	readline.RefreshLine()
 }

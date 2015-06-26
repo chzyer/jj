@@ -31,6 +31,10 @@ func (c *MqClient) Publish(topic string, msg []byte) {
 	c.mq.Publish(topic, msg)
 }
 
+func (c *MqClient) Topics() []string {
+	return c.mq.Topics()
+}
+
 func (c *MqClient) Subscribe(topic, channel string) error {
 	c.mq.Subscribe(c, topic, channel)
 	c.gruad.Lock()
