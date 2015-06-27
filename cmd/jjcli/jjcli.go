@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jj-io/jj/httprpc"
 	"github.com/jj-io/jj/internal"
+	"github.com/jj-io/jj/internal/rl"
 	"github.com/jj-io/jj/model"
 )
 
@@ -13,7 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bobappleyard/readline"
 	"github.com/chzyer/flagx"
 	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/logex.v1"
@@ -40,10 +40,7 @@ func GetEmailAndPassword(c *Config) (email, password string) {
 	var err error
 	email = c.Email
 	for email == "" {
-		email, err = readline.String("email: ")
-		if err != nil {
-			Exit(err.Error())
-		}
+		email = rl.Readline("email: ")
 		if email == "" {
 			Exit("bye!")
 		}
@@ -72,7 +69,7 @@ func loginAndGetInfo(call *Call, conf *Config) (email, uid, token string, mgrAdd
 		if err != nil {
 			println(err.Error())
 			if !noReg {
-				isreg, _ := readline.String(fmt.Sprintf("want to register as '%v' ?(Y/n): ", email))
+				isreg := rl.Readlinef("want to register as '%v' ?(Y/n): ", email)
 				switch isreg {
 				case "y", "Y", "":
 					resp, err := call.Register(email, pswd)
@@ -118,16 +115,14 @@ func run() bool {
 
 	var cmd string
 	for err == nil {
-		cmd, err = readline.String("home » ")
-		if err != nil {
-			continue
-		}
+		cmd = rl.Readline("home » ")
 		processMgr(cmd)
 	}
 	return false
 }
 
 func main() {
+	rl.Init()
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGHUP)
