@@ -3,6 +3,8 @@ package mq
 import (
 	"fmt"
 	"sync"
+
+	"gopkg.in/logex.v1"
 )
 
 type Mq struct {
@@ -31,6 +33,21 @@ func (m *Mq) pubLoop() {
 	}
 }
 
+func (m *Mq) Channels(topic string) (channels []string) {
+	m.gruad.Lock()
+	defer m.gruad.Unlock()
+	t := m.topics[topic]
+	if t == nil {
+		return nil
+	}
+
+	channels = make([]string, len(t.Chans))
+	for idx := range t.Chans {
+		channels[idx] = t.Chans[idx].Name
+	}
+	return
+}
+
 func (m *Mq) Topics() (topics []string) {
 	m.gruad.Lock()
 	defer m.gruad.Unlock()
@@ -54,12 +71,14 @@ func (m *Mq) GetTopic(name string) *Topic {
 }
 
 func (m *Mq) Subscribe(client *MqClient, topic, channel string) {
+	logex.Debugf("subscribe %v, %v", topic, channel)
 	m.GetTopic(topic).AddSubscriber(channel, client)
 	return
 }
 
 func (m *Mq) Unsubscribe(client *MqClient, topic, channel string) {
 	m.GetTopic(topic).RemoveSubscriber(channel, client)
+	logex.Debugf("unsubscribe %v, %v", topic, channel)
 }
 
 func (m *Mq) Publish(topic string, data []byte) {

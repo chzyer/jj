@@ -11,6 +11,7 @@ var (
 	PathUnsubscribe = "unsubscribe"
 	PathPublish     = "publish"
 	PathTopics      = "topics"
+	PathChannels    = "channels"
 )
 
 func InitMq() {
@@ -22,6 +23,7 @@ func Init(h rpc.Handler) {
 	h.HandleFunc(PathUnsubscribe, UnsubscribeHandler)
 	h.HandleFunc(PathPublish, PublishHandler)
 	h.HandleFunc(PathTopics, TopicsHandler)
+	h.HandleFunc(PathChannels, ChannelsHandler)
 }
 
 func getCtx(req *rpc.Request) *Context {

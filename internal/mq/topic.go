@@ -1,6 +1,10 @@
 package mq
 
-import "reflect"
+import (
+	"reflect"
+
+	"gopkg.in/logex.v1"
+)
 
 import "sync"
 
@@ -75,6 +79,7 @@ reWrite:
 	for i := 0; i < length || length == 0; i++ {
 		chosen, _, _ := reflect.Select(css)
 		if chosen == 0 && hasDefault {
+			logex.Debug("new subscribe break write op, rewrite")
 			goto reWrite
 		}
 		css[chosen].Chan = t.EmptyChan
@@ -83,6 +88,7 @@ reWrite:
 			hasDefault = false
 		}
 	}
+	logex.Debugf("topic write to all(%v) chans success", length)
 }
 
 func (t *Topic) chanIdx(name string) int {

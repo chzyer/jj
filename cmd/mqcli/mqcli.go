@@ -2,12 +2,11 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
-	"github.com/bobappleyard/readline"
 	"github.com/chzyer/flagx"
 	"github.com/jj-io/jj/handlers/mq"
+	"github.com/jj-io/jj/internal/rl"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpclink"
@@ -40,6 +39,15 @@ func getTopics(mux *rpcmux.ClientMux) []string {
 	return subresp
 }
 
+func getChannels(mux *rpcmux.ClientMux, topic string) []string {
+	var subresp []string
+	params := &mq.TopicChannel{Topic: topic}
+	if err := mux.Call(mq.PathChannels, params, &subresp); err != nil {
+		logex.Fatal(err)
+	}
+	return subresp
+}
+
 func subscribe(mux *rpcmux.ClientMux, topic, channel string) {
 	var subresp string
 	if err := mux.Call(mq.PathSubscribe, &mq.TopicChannel{
@@ -61,6 +69,7 @@ func publish(mux *rpcmux.ClientMux, topic, msg string) {
 }
 
 func main() {
+	rl.Init()
 	c := NewConfig()
 	handler := rpcmux.NewPathHandler()
 	handler.HandleFunc(mq.PathMsg, OnReceiveMsg)
@@ -71,12 +80,7 @@ func main() {
 	}
 
 	for {
-		cmd, err := readline.String("> ")
-		if err != nil {
-			println(err.Error())
-			os.Exit(1)
-		}
-		readline.AddHistory(cmd)
+		cmd := rl.Readline("> ")
 		switch cmd {
 		case "topics":
 			fmt.Println(getTopics(mux))
@@ -92,14 +96,19 @@ func main() {
 		cmd = cmd[idx+1:]
 
 		idx = strings.Index(cmd, " ")
-		topic := cmd[:idx]
-		cmd = cmd[idx+1:]
+		topic := cmd
+		if idx >= 0 {
+			topic = cmd[:idx]
+			cmd = cmd[idx+1:]
+		}
 
 		switch action {
 		case "subscribe":
 			subscribe(mux, topic, cmd)
 		case "publish":
 			publish(mux, topic, cmd)
+		case "channels":
+			fmt.Println(getChannels(mux, topic))
 		default:
 			usage()
 			continue
@@ -113,6 +122,6 @@ func OnReceiveMsg(w rpc.ResponseWriter, req *rpc.Request) {
 		logex.Error(err)
 		return
 	}
-	println(fmt.Sprintf("topic: %v; msg: %v \n", msg.Topic, msg.Data))
-	readline.RefreshLine()
+
+	rl.Printf("topic: %v; msg: %v", msg.Topic, msg.Data)
 }
