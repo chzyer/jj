@@ -27,6 +27,7 @@ func init() {
 type Config struct {
 	Mongo        string        `flag:"def=localhost:3000/jj"`
 	Listen       string        `flag:"def=:8683;usage=listen port"`
+	MqAddr       string        `flag:"def=:8684;usage=mq addr"`
 	ReadTimeout  time.Duration `flag:"def=10s;usage=read timeout"`
 	WriteTimeout time.Duration `flag:"def=1m;usage=write timeout"`
 }
@@ -52,6 +53,15 @@ func (a *NotifyService) Init() error {
 
 func (a *NotifyService) Name() string {
 	return Name
+}
+
+func (a *NotifyService) RunMqFetcher() {
+	handler := rpcmux.NewPathHandler()
+	notify.Init(handler)
+	mux := rpcmux.NewClientMux(handler, nil)
+	linker := rpclink.NewTcpLink(mux)
+	rpc.Dial(a.MqAddr, linker)
+
 }
 
 func (a *NotifyService) Run() error {
