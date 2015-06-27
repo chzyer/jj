@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jj-io/jj/rpc"
-	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpclink"
 
 	"gopkg.in/logex.v1"
@@ -13,7 +12,7 @@ import (
 
 func TestMux(t *testing.T) {
 	go func() {
-		rpcapi.Listen(":12346", "tcp", func() rpc.Linker {
+		rpc.Listen(":12346", "tcp", func() rpc.Linker {
 			handler := NewPathHandler()
 			serveMux := NewServeMux(handler, nil)
 			return rpclink.NewTcpLink(serveMux)
@@ -22,7 +21,7 @@ func TestMux(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	clientMux := NewClientMux(nil, nil)
 	tcpClient := rpclink.NewTcpLink(clientMux)
-	if err := rpcapi.Dial(":12346", tcpClient); err != nil {
+	if err := rpc.Dial(":12346", tcpClient); err != nil {
 		t.Fatal(err)
 	}
 

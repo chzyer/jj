@@ -1,13 +1,6 @@
 package main
 
 import (
-	"github.com/jj-io/jj/httprpc"
-	"github.com/jj-io/jj/internal"
-	"github.com/jj-io/jj/internal/rl"
-	"github.com/jj-io/jj/model"
-)
-
-import (
 	"fmt"
 	"os"
 	"os/signal"
@@ -15,6 +8,10 @@ import (
 	"time"
 
 	"github.com/chzyer/flagx"
+	"github.com/jj-io/jj/httprpc"
+	"github.com/jj-io/jj/internal"
+	"github.com/jj-io/jj/internal/rl"
+	"github.com/jj-io/jj/model"
 	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/logex.v1"
 )

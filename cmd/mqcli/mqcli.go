@@ -8,7 +8,6 @@ import (
 	"github.com/jj-io/jj/handlers/mq"
 	"github.com/jj-io/jj/internal/rl"
 	"github.com/jj-io/jj/rpc"
-	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
 	"gopkg.in/logex.v1"
@@ -75,7 +74,7 @@ func main() {
 	handler.HandleFunc(mq.PathMsg, OnReceiveMsg)
 	mux := rpcmux.NewClientMux(handler, nil)
 	link := rpclink.NewTcpLink(mux)
-	if err := rpcapi.Dial(c.Host, link); err != nil {
+	if err := rpc.Dial(c.Host, link); err != nil {
 		logex.Fatal(err)
 	}
 

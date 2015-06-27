@@ -1,14 +1,12 @@
-package rpcapi
+package rpc
 
 import (
 	"net"
 
-	"github.com/jj-io/jj/rpc"
-
 	"gopkg.in/logex.v1"
 )
 
-type NewLinkerFunc func() rpc.Linker
+type NewLinkerFunc func() Linker
 
 func Listen(addr, prot string, linkerFunc NewLinkerFunc) error {
 	listener, err := net.Listen(prot, addr)

@@ -8,7 +8,6 @@ import (
 	"github.com/chzyer/flagx"
 	"github.com/jj-io/jj/handlers/mq"
 	"github.com/jj-io/jj/rpc"
-	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
 	"github.com/jj-io/jj/service"
@@ -56,7 +55,7 @@ func (a *MqService) Name() string {
 func (a *MqService) Run() error {
 	logex.Infof("[mq] listen on %v", a.Listen)
 	mq.InitMq()
-	return rpcapi.Listen(a.Listen, "tcp", func() rpc.Linker {
+	return rpc.Listen(a.Listen, "tcp", func() rpc.Linker {
 		var mux *rpcmux.ClientMux
 		mux = rpcmux.NewClientMux(mqHandler, func() rpc.Context {
 			return mq.NewContext(mux)

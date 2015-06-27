@@ -10,7 +10,6 @@ import (
 	"github.com/bobappleyard/readline"
 	"github.com/chzyer/flagx"
 	"github.com/jj-io/jj/rpc"
-	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
@@ -112,7 +111,7 @@ func main() {
 	c := NewConfig()
 	mux = rpcmux.NewClientMux(nil, nil)
 	tcpLink := rpclink.NewTcpLink(mux)
-	if err := rpcapi.Dial(c.MgrHost, tcpLink); err != nil {
+	if err := rpc.Dial(c.MgrHost, tcpLink); err != nil {
 		logex.Fatal(err)
 	}
 

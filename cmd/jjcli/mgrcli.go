@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/jj-io/jj/handlers/mgr"
 	"github.com/jj-io/jj/rpc"
-	"github.com/jj-io/jj/rpc/rpcapi"
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
@@ -29,7 +28,7 @@ func NewMgrCli(mgrAddr []string) (*MgrCli, error) {
 }
 
 func (m *MgrCli) connect() error {
-	return logex.Trace(rpcapi.Dial(m.Addr[0], m.Link))
+	return logex.Trace(rpc.Dial(m.Addr[0], m.Link))
 }
 
 func (m *MgrCli) Call(method string, data, result interface{}) error {
