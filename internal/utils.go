@@ -22,6 +22,12 @@ func GenUserToken() string {
 	return uuid.NewV4().String()[:32]
 }
 
+func MD5(s []byte) string {
+	hash := md5.New()
+	hash.Write(s)
+	return fmt.Sprintf("%x", hash.Sum(nil))
+}
+
 func GenUserPswd(pswd []byte) string {
 	hash := md5.New()
 	hash.Write(pswd)
