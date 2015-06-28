@@ -1,6 +1,7 @@
 package notify
 
 import (
+	"github.com/jj-io/jj/handlers/mq"
 	"github.com/jj-io/jj/model"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
@@ -35,5 +36,9 @@ func InitHandler(w rpc.ResponseWriter, req *rpc.Request) {
 
 	w.Response("success")
 	req.Ctx.BodyEnc = enc
+	packet := rpc.NewReqPacket(mq.PathSubscribe, &mq.TopicChannel{
+		Topic: "to:" + params.Uid,
+	})
+	req.Gtx.(*Context).ToMqMux <- packet
 	return
 }
