@@ -1,15 +1,14 @@
-package notify
+package mgr
 
 import "github.com/jj-io/jj/rpc"
 
 type Context struct {
-	ToMqMux    chan *rpc.Packet
-	ToDispatch chan *rpc.Packet
+	ToMqChan chan *rpc.Packet
 }
 
-func NewContext(mqMux chan *rpc.Packet) *Context {
+func NewContext(tomq chan *rpc.Packet) *Context {
 	return &Context{
-		ToMqMux: mqMux,
+		ToMqChan: tomq,
 	}
 }
 

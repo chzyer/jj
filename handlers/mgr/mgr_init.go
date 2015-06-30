@@ -13,6 +13,7 @@ var (
 func Init(h rpc.Handler) {
 	h.HandleFunc(RouterInit, InitHandler)
 	InitUserHandler(h)
+	InitMqHandler(h)
 }
 
 type InitParams struct {

@@ -3,12 +3,11 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
-	"github.com/bobappleyard/readline"
 	"github.com/chzyer/flagx"
+	"github.com/jj-io/jj/internal/rl"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
@@ -105,10 +104,9 @@ func output(v interface{}) {
 	}
 }
 
-var history = "/tmp/mgrcli.readline"
-
 func main() {
 	c := NewConfig()
+	rl.Init()
 	mux = rpcmux.NewClientMux(nil, nil)
 	tcpLink := rpclink.NewTcpLink(mux)
 	if err := rpc.Dial(c.MgrHost, tcpLink); err != nil {
@@ -124,26 +122,12 @@ func main() {
 		<-mux.GetStopChan()
 		os.Exit(1)
 	}()
-	if err := readline.LoadHistory(history); err != nil {
-		logex.Error(err)
-	}
 
 	for {
-		l, err := readline.String(">>> ")
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			println(err.Error())
-			os.Exit(0)
-		}
+		l := rl.Readline(">>> ")
 		if err := process(l); err != nil {
 			println("bye!")
 			os.Exit(1)
-		}
-		readline.AddHistory(l)
-		if err := readline.SaveHistory(history); err != nil {
-			logex.Error(err)
 		}
 	}
 }

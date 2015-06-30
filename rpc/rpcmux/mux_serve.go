@@ -69,7 +69,7 @@ func (s *ServeMux) OnClosed() {
 func (s *ServeMux) Init(r io.Reader) {
 	s.prot = rpcprot.NewProtocolV1(r, s)
 	if s.ctxFunc != nil {
-		s.gtx = s.ctxFunc()
+		s.Gtx = s.ctxFunc()
 	}
 }
 
@@ -97,7 +97,7 @@ func (s *ServeMux) Close() {
 
 func (s *ServeMux) handlerWrap(h rpc.HandlerFunc, p *rpc.Packet) {
 	now := time.Now()
-	h(NewResponseWriter(s.handler, s, p), rpc.NewRequest(p, s.ctx, s.gtx))
+	h(NewResponseWriter(s.handler, s, p), rpc.NewRequest(p, s.ctx, s.Gtx))
 	logex.Infof("request time: %v,%v", p.Meta.Path, time.Now().Sub(now))
 }
 
