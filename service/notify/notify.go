@@ -84,8 +84,6 @@ func (a *NotifyService) RunMqFetcher() error {
 
 func (a *NotifyService) Run() error {
 	logex.Infof("[notify] listen on %v", a.Listen)
-	handler := rpcmux.NewPathHandler()
-	notify.Init(handler)
 	return rpc.Listen(a.Listen, "tcp", func() rpc.Linker {
 		mux := rpcmux.NewServeMux(notifyHandler, nil)
 		return rpclink.NewTcpLink(mux)
