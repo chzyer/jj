@@ -30,7 +30,7 @@ var _ rpc.Mux = &ClientMux{}
 type ServeMux struct {
 	prot        rpc.Protocol
 	ctx         *rpc.EncContext
-	gtx         rpc.Context
+	Gtx         rpc.Context
 	ctxFunc     rpc.GenContext
 	useEncoding bool
 	state       state

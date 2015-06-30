@@ -35,7 +35,8 @@ type Config struct {
 type NotifyService struct {
 	*Config
 
-	ToMqMux chan *rpc.Packet
+	ToMqMux    chan *rpc.Packet
+	ToDispatch chan *rpc.Packet
 }
 
 func NewNotifyService(name string, args []string) service.Service {
@@ -45,8 +46,9 @@ func NewNotifyService(name string, args []string) service.Service {
 		Args: args,
 	})
 	return &NotifyService{
-		Config:  &c,
-		ToMqMux: make(chan *rpc.Packet, 100),
+		Config:     &c,
+		ToMqMux:    make(chan *rpc.Packet, 100),
+		ToDispatch: make(chan *rpc.Packet, 100),
 	}
 }
 
@@ -56,6 +58,11 @@ func (a *NotifyService) Init() error {
 
 func (a *NotifyService) Name() string {
 	return Name
+}
+
+// dispatch message to theirs mux
+func (a *NotifyService) RunDispatch() {
+
 }
 
 func (a *NotifyService) RunMqFetcher() error {
@@ -86,6 +93,7 @@ func (a *NotifyService) Run() error {
 	logex.Infof("[notify] listen on %v", a.Listen)
 	return rpc.Listen(a.Listen, "tcp", func() rpc.Linker {
 		mux := rpcmux.NewServeMux(notifyHandler, nil)
+		mux.Gtx = notify.NewContext(a.ToMqMux)
 		return rpclink.NewTcpLink(mux)
 	})
 }
