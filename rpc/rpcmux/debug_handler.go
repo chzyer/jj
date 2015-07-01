@@ -13,21 +13,21 @@ var (
 )
 
 func InitDebugHandler(handler rpc.Handler) {
-	handler.HandleFunc(RouterDebugPing, Ping)
-	handler.HandleFunc(RouterDebugSleep, Sleep)
-	handler.HandleFunc(RouterHelp, Help)
+	handler.HandleFunc(RouterDebugPing, PingHandler)
+	handler.HandleFunc(RouterDebugSleep, SleepHandler)
+	handler.HandleFunc(RouterHelp, HelpHandler)
 }
 
-func Help(w rpc.ResponseWriter, req *rpc.Request) {
+func HelpHandler(w rpc.ResponseWriter, req *rpc.Request) {
 	list := w.(*responseWriter).routerList()
 	w.Response(list)
 }
 
-func Ping(w rpc.ResponseWriter, data *rpc.Request) {
+func PingHandler(w rpc.ResponseWriter, data *rpc.Request) {
 	w.Response("pong")
 }
 
-func Sleep(w rpc.ResponseWriter, data *rpc.Request) {
+func SleepHandler(w rpc.ResponseWriter, data *rpc.Request) {
 	var params string
 	if err := data.Params(&params); err != nil {
 		w.Error(err)
