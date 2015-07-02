@@ -62,6 +62,7 @@ func (p1 *ProtocolV1) Read(buf *bytes.Buffer, metaEnc rpc.Encoding, p *rpc.Packe
 }
 
 func (p1 *ProtocolV1) Write(metaEnc, bodyEnc rpc.Encoding, p *rpc.Packet) error {
+	logex.Debug("write:", p)
 	underBuf := make([]byte, 4, 512)
 	buf := bytes.NewBuffer(underBuf)
 	if err := metaEnc.Encode(buf, p.Meta); err != nil {
