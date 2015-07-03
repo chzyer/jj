@@ -41,7 +41,7 @@ func (ch *Channel) dispatchLoop() {
 		}
 		val := reflect.ValueOf(&Msg{
 			Topic:   ch.Topic,
-			channel: ch.Name,
+			Channel: ch.Name,
 			Data:    data,
 		})
 

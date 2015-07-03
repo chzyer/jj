@@ -90,24 +90,28 @@ func (m *Mq) Publish(topic string, data []byte) {
 
 type Msg struct {
 	Topic   string
-	channel string
+	Channel string
 	Data    []byte
 }
 
-func (m *Msg) String() string {
-	return fmt.Sprintf("msg:%v:%v", m.Topic, m.channel)
+func (m *Msg) TopicChannel() *TopicChannel {
+	return &TopicChannel{m.Topic, m.Channel}
 }
 
-func (m *Msg) Channel() string {
-	return m.channel
+func (m *Msg) String() string {
+	return fmt.Sprintf("msg:%v:%v", m.Topic, m.Channel)
 }
 
 func (m Msg) Clone(ch string) *Msg {
-	m.channel = ch
+	m.Channel = ch
 	return &m
 }
 
 type TopicChannel struct {
 	Topic   string
 	Channel string
+}
+
+func (t *TopicChannel) String() string {
+	return t.Topic + ":" + t.Channel
 }

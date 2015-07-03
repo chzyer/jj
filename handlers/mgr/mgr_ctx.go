@@ -12,6 +12,8 @@ func NewContext(tomq chan *rpc.Packet) *Context {
 	}
 }
 
+func (c *Context) Close() {}
+
 func getCtx(req *rpc.Request) *Context {
 	return req.Gtx.(*Context)
 }

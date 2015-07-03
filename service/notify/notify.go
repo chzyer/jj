@@ -35,6 +35,7 @@ type Config struct {
 type NotifyService struct {
 	*Config
 
+	ctxGroup   *notify.CtxGroup
 	ToMqMux    chan *rpc.Packet
 	ToDispatch chan *rpc.Packet
 }
@@ -47,6 +48,7 @@ func NewNotifyService(name string, args []string) service.Service {
 	})
 	return &NotifyService{
 		Config:     &c,
+		ctxGroup:   notify.NewCtxGroup(),
 		ToMqMux:    make(chan *rpc.Packet, 100),
 		ToDispatch: make(chan *rpc.Packet, 100),
 	}
@@ -69,7 +71,7 @@ func (a *NotifyService) RunMqFetcher() error {
 	handler := rpcmux.NewPathHandler()
 	notify.InitMqHandler(handler)
 	mux := rpcmux.NewClientMux(handler, nil)
-	mux.Gtx = notify.NewContext(a.ToMqMux)
+	mux.Gtx = notify.NewContext(a.ctxGroup, a.ToMqMux)
 	linker := rpclink.NewTcpLink(mux)
 	if err := rpc.Dial(a.MqAddr, linker); err != nil {
 		return logex.Trace(err)
@@ -90,10 +92,17 @@ func (a *NotifyService) RunMqFetcher() error {
 }
 
 func (a *NotifyService) Run() error {
+	go a.RunMqFetcher()
 	logex.Infof("[notify] listen on %v", a.Listen)
 	return rpc.Listen(a.Listen, "tcp", func() rpc.Linker {
-		mux := rpcmux.NewServeMux(notifyHandler, nil)
-		mux.Gtx = notify.NewContext(a.ToMqMux)
+		mux := rpcmux.NewClientMux(notifyHandler, nil)
+		ctx := notify.NewContext(a.ctxGroup, a.ToMqMux)
+		mux.Gtx = ctx
+		go ctx.HandleIncomingLoop(mux)
+		go func() {
+			<-mux.GetStopChan()
+			ctx.Close()
+		}()
 		return rpclink.NewTcpLink(mux)
 	})
 }

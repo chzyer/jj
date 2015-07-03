@@ -16,6 +16,10 @@ type TopicChannel struct {
 	Channel string `json:"channel"`
 }
 
+func (c *TopicChannel) String() string {
+	return c.Topic + ":" + c.Channel
+}
+
 func NewTopicChannel(req *rpc.Request) (*TopicChannel, error) {
 	var tc TopicChannel
 	if err := req.Params(&tc); err != nil {

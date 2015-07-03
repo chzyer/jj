@@ -5,6 +5,12 @@ import (
 	"github.com/jj-io/jj/model"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
+	"gopkg.in/logex.v1"
+)
+
+var (
+	ErrEmptyDevice = logex.Define("device is empty")
+	ErrEmptyUid    = logex.Define("uid is empty")
 )
 
 func Init(h rpc.Handler) {
@@ -12,12 +18,25 @@ func Init(h rpc.Handler) {
 }
 
 type InitParams struct {
-	Uid string `json:"uid"`
+	Uid    string `json:"uid"`
+	Device string `json:"device"`
 }
 
 func InitHandler(w rpc.ResponseWriter, req *rpc.Request) {
 	var params InitParams
 	if err := req.Params(&params); err != nil {
+		w.Error(err)
+		return
+	}
+
+	var err error
+	switch {
+	case params.Uid == "":
+		err = ErrEmptyUid
+	case params.Device == "":
+		err = ErrEmptyDevice
+	}
+	if err != nil {
 		w.Error(err)
 		return
 	}
@@ -28,6 +47,8 @@ func InitHandler(w rpc.ResponseWriter, req *rpc.Request) {
 		return
 	}
 
+	logex.Info("init:", token)
+
 	enc, err := rpcenc.NewAesEncoding(req.Ctx.BodyEnc, []byte(token))
 	if err != nil {
 		w.Error(err)
@@ -36,9 +57,14 @@ func InitHandler(w rpc.ResponseWriter, req *rpc.Request) {
 
 	w.Response("success")
 	req.Ctx.BodyEnc = enc
-	packet := rpc.NewReqPacket(mq.PathSubscribe, &mq.TopicChannel{
-		Topic: "to:" + params.Uid,
-	})
+
+	tc := &mq.TopicChannel{
+		Topic:   "to:" + params.Uid,
+		Channel: params.Device,
+	}
+	getCtx(req).Subscribe(tc.String())
+	packet := rpc.NewReqPacket(mq.PathSubscribe, tc)
 	req.Gtx.(*Context).ToMqMux <- packet
+	println("write to mq success")
 	return
 }

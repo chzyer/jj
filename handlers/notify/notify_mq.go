@@ -18,5 +18,6 @@ func MqMsgHandler(w rpc.ResponseWriter, req *rpc.Request) {
 		return
 	}
 
+	getCtx(req).Dispatch(msg.TopicChannel(), &msg)
 	logex.Info(msg)
 }

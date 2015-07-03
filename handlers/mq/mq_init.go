@@ -7,6 +7,8 @@ import (
 
 var mqobj *mq.Mq
 var (
+	PathMsg = "msg"
+
 	PathSubscribe   = "subscribe"
 	PathUnsubscribe = "unsubscribe"
 	PathPublish     = "publish"

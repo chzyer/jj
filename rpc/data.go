@@ -46,7 +46,10 @@ func (d *Data) Decode(enc Encoding, v interface{}) error {
 
 func (d *Data) String() string {
 	if d.underlay != nil {
-		return fmt.Sprintf("%v", d.underlay)
+		return fmt.Sprintf("%+v", d.underlay)
+	}
+	if len(d.buf) > 2 && d.buf[0] == '{' && d.buf[len(d.buf)-1] == '}' {
+		return fmt.Sprintf("(RAW)%v", string(d.buf))
 	}
 	return fmt.Sprintf("%v", d.buf)
 }

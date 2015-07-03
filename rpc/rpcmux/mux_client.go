@@ -67,6 +67,13 @@ func (s *ClientMux) GetStopChan() <-chan struct{} {
 	return s.stopChan
 }
 
+func (c *ClientMux) clean() {
+	<-c.stopChan
+	if c.Gtx != nil {
+		c.Gtx.Close()
+	}
+}
+
 func (c *ClientMux) OnClosed() {
 	close(c.stopChan)
 }
@@ -95,8 +102,15 @@ func (c *ClientMux) respLoop() {
 		}
 
 		if packet.Meta.Type == rpc.MetaReq {
-
+			if c.handler == nil {
+				logex.Error("receive req type packet, but handler is null")
+				continue
+			}
 			h := c.handler.GetHandler(packet.Meta.Path)
+			if h == nil {
+				logex.Error("packet handler not found:", packet)
+				continue
+			}
 			c.handlerWrap(h, packet)
 			continue
 		}

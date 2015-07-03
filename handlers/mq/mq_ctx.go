@@ -7,10 +7,6 @@ import (
 	"gopkg.in/logex.v1"
 )
 
-var (
-	PathMsg = "msg"
-)
-
 type MsgParams struct {
 	Topic   string `json:"topic"`
 	Channel string `json:"channel"`
@@ -31,6 +27,8 @@ func NewContext(mux *rpcmux.ClientMux) rpc.Context {
 	return ctx
 }
 
+func (c *Context) Close() {}
+
 func (c *Context) callback(p *rpc.Packet) {
 	logex.Info("mqClient receive", p)
 }
@@ -45,11 +43,8 @@ func (c *Context) respLoop() {
 			return
 		}
 
-		err = c.mux.SendAsync(rpc.NewReqPacket(PathMsg, &MsgParams{
-			Topic:   msg.Topic,
-			Channel: msg.Channel(),
-			Data:    string(msg.Data),
-		}), c.callback)
+		logex.Info("ctx receive msg:", msg)
+		err = c.mux.SendAsync(rpc.NewReqPacket(PathMsg, msg), c.callback)
 		if err != nil {
 			logex.Error(err)
 		}

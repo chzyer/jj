@@ -1,6 +1,7 @@
 package rpc
 
 type Context interface {
+	Close()
 }
 
 type GenContext func() Context
