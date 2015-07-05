@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
@@ -28,11 +27,6 @@ func NewConfig() *Config {
 	return &c
 }
 
-func Exit(s string) {
-	println(s)
-	os.Exit(1)
-}
-
 func GetEmailAndPassword(c *Config) (email, password string) {
 	var err error
 	email = c.Email
@@ -42,7 +36,7 @@ func GetEmailAndPassword(c *Config) (email, password string) {
 			Exit("bye!")
 		}
 		if !model.RegexpUserEmail.MatchString(email) {
-			println(fmt.Sprintf("%v is not a valid email", email))
+			Errorf("%v is not a valid email", email)
 			email = ""
 			continue
 		}
@@ -64,17 +58,17 @@ func loginAndGetInfo(call *Call, conf *Config) (email, uid, token string, mgrAdd
 		email, pswd := GetEmailAndPassword(conf)
 		resp, err := call.Login(email, pswd)
 		if err != nil {
-			println(err.Error())
+			Error(err)
 			if !noReg {
 				isreg := rl.Readlinef("want to register as '%v' ?(Y/n): ", email)
 				switch isreg {
 				case "y", "Y", "":
 					resp, err := call.Register(email, pswd)
 					if err != nil {
-						Exit(err.Error())
+						Exit(err)
 					}
 					if resp.Result != 200 {
-						println(resp.Reason)
+						Errorf(resp.Reason)
 						continue
 					}
 					return email, resp.Uid, resp.Token, resp.MgrAddr
@@ -82,7 +76,7 @@ func loginAndGetInfo(call *Call, conf *Config) (email, uid, token string, mgrAdd
 					noReg = true
 				}
 			}
-			println("please re-enter login info.")
+			Info("please re-enter login info.")
 			continue
 		}
 		return email, resp.Uid, resp.Token, resp.MgrAddr
@@ -100,19 +94,19 @@ func run() bool {
 	call := NewCall(client)
 	email, uid, token, mgrAddr := loginAndGetInfo(call, conf)
 	_ = email
-	fmt.Println("welcome to jj-cli!")
+	Info("welcome to jj-cli!")
 	mgrCli, err := NewMgrCli(mgrAddr)
 	if err != nil {
 		Exit(err.Error())
 	}
 	if err := mgrCli.SendInit(uid, token); err != nil {
-		println("unexcept error:", err.Error())
+		Errorf("unexcept error: %v", err)
 		return true
 	}
 
 	var cmd string
 	for err == nil {
-		cmd = rl.Readline("home » ")
+		cmd = rl.Readline("home» ")
 		processMgr(cmd)
 	}
 	return false
