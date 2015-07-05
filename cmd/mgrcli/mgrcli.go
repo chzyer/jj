@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/chzyer/flagx"
-	"github.com/jj-io/jj/internal/rl"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
+	"github.com/jj-io/readline"
 	"gopkg.in/logex.v1"
 )
 
@@ -106,7 +106,7 @@ func output(v interface{}) {
 
 func main() {
 	c := NewConfig()
-	rl.Init()
+	readline.Init()
 	mux = rpcmux.NewClientMux(nil, nil)
 	tcpLink := rpclink.NewTcpLink(mux)
 	if err := rpc.Dial(c.MgrHost, tcpLink); err != nil {
@@ -124,7 +124,7 @@ func main() {
 	}()
 
 	for {
-		l := rl.Readline(">>> ")
+		l := readline.String(">>> ")
 		if err := process(l); err != nil {
 			println("bye!")
 			os.Exit(1)

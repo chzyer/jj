@@ -6,6 +6,7 @@ import (
 	"github.com/jj-io/jj/rpc/rpcenc"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
+	"github.com/jj-io/readline"
 	"gopkg.in/logex.v1"
 )
 
@@ -36,7 +37,7 @@ func (m *MgrCli) Call(method string, data, result interface{}) error {
 	if err.IsUserError {
 		return logex.Trace(err)
 	}
-	Exit(err.Error())
+	readline.Exit(err.Error())
 	return nil
 }
 
@@ -46,7 +47,7 @@ func (m *MgrCli) Ping() error {
 		return err
 	}
 	if pong != "pong" {
-		Exit("unexcept ping result")
+		readline.Exit("unexcept ping result")
 	}
 	return nil
 }
@@ -57,14 +58,14 @@ func (m *MgrCli) SendInit(uid string, token string) error {
 		&mgr.InitParams{uid},
 	))
 	if err != nil {
-		Exit(err.Error())
+		readline.Exit(err.Error())
 	}
 	if resp.Meta.Error != "" {
 		return logex.NewError(resp.Meta.Error)
 	}
 	m.Mux.Ctx.BodyEnc, err = rpcenc.NewAesEncoding(m.Mux.Ctx.BodyEnc, []byte(token))
 	if err != nil {
-		Exit("invalid token:" + err.Error())
+		readline.Exit("invalid token:" + err.Error())
 	}
 	return nil
 }

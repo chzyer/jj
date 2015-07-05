@@ -6,10 +6,10 @@ import (
 
 	"github.com/chzyer/flagx"
 	"github.com/jj-io/jj/handlers/mq"
-	"github.com/jj-io/jj/internal/rl"
 	"github.com/jj-io/jj/rpc"
 	"github.com/jj-io/jj/rpc/rpclink"
 	"github.com/jj-io/jj/rpc/rpcmux"
+	"github.com/jj-io/readline"
 	"gopkg.in/logex.v1"
 )
 
@@ -68,7 +68,7 @@ func publish(mux *rpcmux.ClientMux, topic, msg string) {
 }
 
 func main() {
-	rl.Init()
+	readline.Init()
 	c := NewConfig()
 	handler := rpcmux.NewPathHandler()
 	handler.HandleFunc(mq.PathMsg, OnReceiveMsg)
@@ -79,7 +79,7 @@ func main() {
 	}
 
 	for {
-		cmd := rl.Readline("> ")
+		cmd := readline.String("> ")
 		switch cmd {
 		case "topics":
 			fmt.Println(getTopics(mux))
@@ -122,5 +122,5 @@ func OnReceiveMsg(w rpc.ResponseWriter, req *rpc.Request) {
 		return
 	}
 
-	rl.Printf("topic: %v; msg: %v", msg.Topic, msg.Data)
+	readline.Printf("topic: %v; msg: %v", msg.Topic, msg.Data)
 }

@@ -9,8 +9,8 @@ import (
 	"github.com/chzyer/flagx"
 	"github.com/jj-io/jj/httprpc"
 	"github.com/jj-io/jj/internal"
-	"github.com/jj-io/jj/internal/rl"
 	"github.com/jj-io/jj/model"
+	"github.com/jj-io/readline"
 	"golang.org/x/crypto/ssh/terminal"
 	"gopkg.in/logex.v1"
 )
@@ -31,12 +31,12 @@ func GetEmailAndPassword(c *Config) (email, password string) {
 	var err error
 	email = c.Email
 	for email == "" {
-		email = rl.Readline("email: ")
+		email = readline.String("email: ")
 		if email == "" {
-			Exit("bye!")
+			readline.Exit("bye!")
 		}
 		if !model.RegexpUserEmail.MatchString(email) {
-			Errorf("%v is not a valid email", email)
+			readline.Errorf("%v is not a valid email", email)
 			email = ""
 			continue
 		}
@@ -45,7 +45,7 @@ func GetEmailAndPassword(c *Config) (email, password string) {
 	print("password: ")
 	pswd, err := terminal.ReadPassword(syscall.Stdin)
 	if err != nil {
-		Exit(err.Error())
+		readline.Exit(err.Error())
 	}
 	println()
 
@@ -58,17 +58,17 @@ func loginAndGetInfo(call *Call, conf *Config) (email, uid, token string, mgrAdd
 		email, pswd := GetEmailAndPassword(conf)
 		resp, err := call.Login(email, pswd)
 		if err != nil {
-			Error(err)
+			readline.Error(err)
 			if !noReg {
-				isreg := rl.Readlinef("want to register as '%v' ?(Y/n): ", email)
+				isreg := readline.Stringf("want to register as '%v' ?(Y/n): ", email)
 				switch isreg {
 				case "y", "Y", "":
 					resp, err := call.Register(email, pswd)
 					if err != nil {
-						Exit(err)
+						readline.Exit(err)
 					}
 					if resp.Result != 200 {
-						Errorf(resp.Reason)
+						readline.Errorf(resp.Reason)
 						continue
 					}
 					return email, resp.Uid, resp.Token, resp.MgrAddr
@@ -76,12 +76,12 @@ func loginAndGetInfo(call *Call, conf *Config) (email, uid, token string, mgrAdd
 					noReg = true
 				}
 			}
-			Info("please re-enter login info.")
+			readline.Info("please re-enter login info.")
 			continue
 		}
 		return email, resp.Uid, resp.Token, resp.MgrAddr
 	}
-	Exit("bye!")
+	readline.Exit("bye!")
 	return
 }
 
@@ -94,31 +94,32 @@ func run() bool {
 	call := NewCall(client)
 	email, uid, token, mgrAddr := loginAndGetInfo(call, conf)
 	_ = email
-	Info("welcome to jj-cli!")
+	readline.Info("welcome to jj-cli!")
 	mgrCli, err := NewMgrCli(mgrAddr)
 	if err != nil {
-		Exit(err.Error())
+		readline.Exit(err.Error())
 	}
 	if err := mgrCli.SendInit(uid, token); err != nil {
-		Errorf("unexcept error: %v", err)
+		readline.Errorf("unexcept error: %v", err)
 		return true
 	}
 
 	var cmd string
 	for err == nil {
-		cmd = rl.Readline("home» ")
+		cmd = readline.String("home» ")
 		processMgr(cmd)
 	}
 	return false
 }
 
 func main() {
-	rl.Init()
+	readline.Init()
+
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, os.Interrupt, os.Kill, syscall.SIGTERM, syscall.SIGHUP)
 		<-c
-		Exit("\nbye")
+		readline.Exit("\nbye")
 	}()
 	for run() {
 	}
