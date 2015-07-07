@@ -58,7 +58,7 @@ func (t *Topic) writeBufferLoop() {
 		data []byte
 	)
 	t.rat.Birth()
-	defer t.rat.Kill()
+	defer t.rat.Die()
 
 	for {
 		select {
@@ -118,7 +118,7 @@ func (t *Topic) GetChan(name string) (ch *Channel) {
 	}
 	t.guard.RUnlock()
 
-	ch = NewChannel(t.Name, name)
+	ch = NewChannel(t.Name, name, t.rat)
 	t.guard.Lock()
 	t.Chans = append(t.Chans, ch)
 	t.ChanSelect = append(t.ChanSelect, reflect.SelectCase{

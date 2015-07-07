@@ -31,7 +31,7 @@ func NewMq() *Mq {
 
 func (m *Mq) pubLoop() {
 	m.rat.Birth()
-	defer m.rat.Kill()
+	defer m.rat.Die()
 
 	var msg *Msg
 	for {
@@ -84,23 +84,20 @@ func (m *Mq) GetTopic(name string) *Topic {
 	return topic
 }
 
-func (m *Mq) Subscribe(client *MqClient, topic, channel string) {
+func (m *Mq) Subscribe(client Subscriber, topic, channel string) {
 	logex.Debugf("subscribe %v, %v", topic, channel)
 	m.GetTopic(topic).AddSubscriber(channel, client)
 	return
 }
 
-func (m *Mq) Unsubscribe(client *MqClient, topic, channel string) {
+func (m *Mq) Unsubscribe(client Subscriber, topic, channel string) {
 	m.GetTopic(topic).RemoveSubscriber(channel, client)
 	logex.Debugf("unsubscribe %v, %v", topic, channel)
 }
 
 func (m *Mq) Publish(topic string, data []byte) error {
 	select {
-	case m.pubChan <- &Msg{
-		Topic: topic,
-		Data:  data,
-	}:
+	case m.pubChan <- NewMsg(topic, data):
 	case <-m.rat.C:
 		return ErrMqClosing
 	}

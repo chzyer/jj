@@ -3,6 +3,8 @@ package mq
 import (
 	"reflect"
 	"sync"
+
+	"github.com/jj-io/jj/internal"
 )
 
 type Channel struct {
@@ -13,12 +15,14 @@ type Channel struct {
 	underlay   chan []byte
 	newChan    chan struct{}
 	mutex      sync.Mutex
+	rat        *internal.Rat
 }
 
-func NewChannel(topic, name string) *Channel {
+func NewChannel(topic, name string, rat *internal.Rat) *Channel {
 	ch := &Channel{
 		Name:     name,
 		Topic:    topic,
+		rat:      rat,
 		underlay: make(chan []byte, 10),
 		newChan:  make(chan struct{}),
 	}
@@ -35,9 +39,14 @@ func (ch *Channel) dispatchLoop() {
 		data     []byte
 		selected int
 	)
+	ch.rat.Birth()
+	defer ch.rat.Die()
+
 	for {
 		select {
 		case data = <-ch.underlay:
+		case <-ch.rat.C:
+			return
 		}
 		val := reflect.ValueOf(&Msg{
 			Topic:   ch.Topic,
@@ -104,5 +113,8 @@ func (ch *Channel) RemoveSubscriber(s Subscriber) (idx int) {
 }
 
 func (ch *Channel) Write(data []byte) {
-	ch.underlay <- data
+	select {
+	case ch.underlay <- data:
+	case <-ch.rat.C:
+	}
 }

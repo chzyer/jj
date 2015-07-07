@@ -100,7 +100,7 @@ func TestChannel(t *testing.T) {
 	send := [][]byte{[]byte("hello"), []byte("22"), []byte("43333")}
 	ms := NewMockSub()
 	ms.Add(len(send))
-	ch := NewChannel("topic", "ios")
+	ch := NewChannel("topic", "ios", internal.NewRat())
 	ch.AddSubscriber(ms)
 	for _, s := range send {
 		ch.Write(s)

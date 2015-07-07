@@ -2,10 +2,21 @@ package mq
 
 import "fmt"
 
+type MsgId [16]byte
+
 type Msg struct {
-	Topic   string
-	Channel string
-	Data    []byte
+	Id       MsgId
+	Topic    string
+	Attempts int
+	Channel  string
+	Data     []byte
+}
+
+func NewMsg(topic string, data []byte) *Msg {
+	return &Msg{
+		Topic: topic,
+		Data:  data,
+	}
 }
 
 func (m *Msg) TopicChannel() *TopicChannel {

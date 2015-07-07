@@ -22,6 +22,6 @@ func (r *Rat) Birth() {
 	r.W.Add(1)
 }
 
-func (r *Rat) Kill() {
+func (r *Rat) Die() {
 	r.W.Done()
 }
