@@ -1,15 +1,21 @@
 package mq
 
 import (
-	"fmt"
 	"sync"
 
+	"github.com/jj-io/jj/internal"
+
 	"gopkg.in/logex.v1"
+)
+
+var (
+	ErrMqClosing = logex.Define("mq is closing")
 )
 
 type Mq struct {
 	topics  map[string]*Topic
 	pubChan chan *Msg
+	rat     *internal.Rat
 	gruad   sync.Mutex
 }
 
@@ -17,16 +23,22 @@ func NewMq() *Mq {
 	mq := &Mq{
 		topics:  make(map[string]*Topic),
 		pubChan: make(chan *Msg, 10),
+		rat:     internal.NewRat(),
 	}
 	go mq.pubLoop()
 	return mq
 }
 
 func (m *Mq) pubLoop() {
+	m.rat.Birth()
+	defer m.rat.Kill()
+
 	var msg *Msg
 	for {
 		select {
 		case msg = <-m.pubChan:
+		case <-m.rat.C:
+			break
 		}
 
 		m.GetTopic(msg.Topic).Publish(msg.Data)
@@ -36,6 +48,7 @@ func (m *Mq) pubLoop() {
 func (m *Mq) Channels(topic string) (channels []string) {
 	m.gruad.Lock()
 	defer m.gruad.Unlock()
+
 	t := m.topics[topic]
 	if t == nil {
 		return nil
@@ -51,6 +64,7 @@ func (m *Mq) Channels(topic string) (channels []string) {
 func (m *Mq) Topics() (topics []string) {
 	m.gruad.Lock()
 	defer m.gruad.Unlock()
+
 	topics = make([]string, 0, len(m.topics))
 	for k := range m.topics {
 		topics = append(topics, k)
@@ -64,7 +78,7 @@ func (m *Mq) GetTopic(name string) *Topic {
 
 	topic, ok := m.topics[name]
 	if !ok {
-		topic = NewTopic(name)
+		topic = NewTopic(name, m.rat)
 		m.topics[name] = topic
 	}
 	return topic
@@ -81,37 +95,18 @@ func (m *Mq) Unsubscribe(client *MqClient, topic, channel string) {
 	logex.Debugf("unsubscribe %v, %v", topic, channel)
 }
 
-func (m *Mq) Publish(topic string, data []byte) {
-	m.pubChan <- &Msg{
+func (m *Mq) Publish(topic string, data []byte) error {
+	select {
+	case m.pubChan <- &Msg{
 		Topic: topic,
 		Data:  data,
+	}:
+	case <-m.rat.C:
+		return ErrMqClosing
 	}
+	return nil
 }
 
-type Msg struct {
-	Topic   string
-	Channel string
-	Data    []byte
-}
-
-func (m *Msg) TopicChannel() *TopicChannel {
-	return &TopicChannel{m.Topic, m.Channel}
-}
-
-func (m *Msg) String() string {
-	return fmt.Sprintf("msg:%v:%v", m.Topic, m.Channel)
-}
-
-func (m Msg) Clone(ch string) *Msg {
-	m.Channel = ch
-	return &m
-}
-
-type TopicChannel struct {
-	Topic   string
-	Channel string
-}
-
-func (t *TopicChannel) String() string {
-	return t.Topic + ":" + t.Channel
+func (m *Mq) Close() {
+	m.rat.Shoo()
 }

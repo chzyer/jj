@@ -3,6 +3,8 @@ package mq
 import (
 	"reflect"
 
+	"github.com/jj-io/jj/internal"
+
 	"gopkg.in/logex.v1"
 )
 
@@ -17,6 +19,7 @@ type Topic struct {
 	Name        string
 	buffer      chan []byte
 	hasChan     chan struct{}
+	rat         *internal.Rat
 	Chans       []*Channel
 	ChanSelect  []reflect.SelectCase
 	EmptyChan   reflect.Value
@@ -24,10 +27,11 @@ type Topic struct {
 	guard       sync.RWMutex
 }
 
-func NewTopic(name string) *Topic {
+func NewTopic(name string, rat *internal.Rat) *Topic {
 	var empty chan []byte
 	t := &Topic{
 		Name:      name,
+		rat:       rat,
 		hasChan:   make(chan struct{}),
 		buffer:    make(chan []byte, 10),
 		EmptyChan: reflect.ValueOf(empty),
@@ -53,11 +57,15 @@ func (t *Topic) writeBufferLoop() {
 	var (
 		data []byte
 	)
+	t.rat.Birth()
+	defer t.rat.Kill()
 
 	for {
 		select {
 		case data = <-t.buffer:
 			t.writeToChans(data)
+		case <-t.rat.C:
+			return
 		}
 	}
 }
@@ -127,5 +135,8 @@ func (t *Topic) GetChan(name string) (ch *Channel) {
 }
 
 func (t *Topic) Publish(data []byte) {
-	t.buffer <- data
+	select {
+	case t.buffer <- data:
+	case <-t.rat.C:
+	}
 }

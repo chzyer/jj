@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/jj-io/jj/internal"
 )
 
 type MockSub struct {
@@ -53,7 +55,7 @@ func TestTopic(t *testing.T) {
 	ms := NewMockSub()
 	if true {
 		ms.Add(len(send) * 2)
-		topic := NewTopic("topic")
+		topic := NewTopic("topic", internal.NewRat())
 		topic.AddSubscriber("ios", ms)
 		topic.AddSubscriber("android", ms)
 		for _, s := range send {
@@ -78,7 +80,7 @@ func TestTopic(t *testing.T) {
 	}
 
 	{
-		topic := NewTopic("t2")
+		topic := NewTopic("t2", internal.NewRat())
 		for _, s := range send {
 			topic.Publish(s)
 		}
@@ -105,7 +107,7 @@ func TestChannel(t *testing.T) {
 	}
 	ms.Wait()
 	for idx, r := range ms.Rece {
-		if r.Topic != "topic" || r.channel != "ios" {
+		if r.Topic != "topic" || r.Channel != "ios" {
 			t.Fatal("result not except")
 		}
 		if !reflect.DeepEqual(r.Data, send[idx]) {
